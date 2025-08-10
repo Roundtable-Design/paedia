@@ -1,13 +1,13 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import { createUserWithEmailAndPassword, updateProfile, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider, db } from "@/lib/firebase";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -79,5 +79,13 @@ export default function RegisterPage() {
       <div className="my-6 text-center text-sm text-zinc-400">Or sign up with</div>
       <button onClick={signUpWithGoogle} className="btn-secondary w-full" disabled={loading}>Continue with Google</button>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="text-center">Loading...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

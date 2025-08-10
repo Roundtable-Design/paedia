@@ -1,12 +1,12 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -62,5 +62,13 @@ export default function LoginPage() {
       <div className="my-6 text-center text-sm text-zinc-400">Or sign in with</div>
       <button onClick={signInWithGoogle} className="btn-secondary w-full" disabled={loading}>Continue with Google</button>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="text-center">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
