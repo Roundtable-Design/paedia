@@ -15,15 +15,16 @@ export default function LoginPage() {
   const params = useSearchParams();
   const next = params.get("next") ?? "/manuals";
 
-  async function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.replace(next);
-    } catch (err: any) {
-      setError(err.message ?? "Failed to log in");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to log in";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -35,8 +36,9 @@ export default function LoginPage() {
     try {
       await signInWithPopup(auth, googleProvider);
       router.replace(next);
-    } catch (err: any) {
-      setError(err.message ?? "Failed to sign in with Google");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to sign in with Google";
+      setError(message);
     } finally {
       setLoading(false);
     }

@@ -7,6 +7,13 @@ import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
+interface UserDoc {
+  openingStatement?: string | null;
+  closingStatement?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
 export default function ProfilePage() {
   const { user } = useAuth();
   const [opening, setOpening] = useState("");
@@ -20,10 +27,10 @@ export default function ProfilePage() {
       if (!user) return;
       const ref = doc(db, "users", user.uid);
       const snap = await getDoc(ref);
-      const data = snap.data() as any;
+      const data: UserDoc | undefined = snap.exists() ? (snap.data() as UserDoc) : undefined;
       if (data) {
-        setOpening(data.openingStatement || "");
-        setClosing(data.closingStatement || "");
+        setOpening(data.openingStatement ?? "");
+        setClosing(data.closingStatement ?? "");
         if (data.startDate) setStartDate(data.startDate);
         if (data.endDate) setEndDate(data.endDate);
       }

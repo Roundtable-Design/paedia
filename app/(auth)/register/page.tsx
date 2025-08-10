@@ -17,7 +17,7 @@ export default function RegisterPage() {
   const params = useSearchParams();
   const next = params.get("next") ?? "/manuals";
 
-  async function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -30,8 +30,9 @@ export default function RegisterPage() {
         createdAt: serverTimestamp(),
       });
       router.replace(next);
-    } catch (err: any) {
-      setError(err.message ?? "Failed to create account");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to create account";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -49,8 +50,9 @@ export default function RegisterPage() {
         createdAt: serverTimestamp(),
       }, { merge: true });
       router.replace(next);
-    } catch (err: any) {
-      setError(err.message ?? "Failed to sign up with Google");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to sign up with Google";
+      setError(message);
     } finally {
       setLoading(false);
     }
