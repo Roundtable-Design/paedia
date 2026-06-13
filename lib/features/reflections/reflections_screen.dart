@@ -1,16 +1,18 @@
 import 'package:expandable/expandable.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 import '/core/pdf/day_pdf_builder.dart';
 
+import '/core/analytics/app_analytics.dart';
 import '/core/domain/date_math.dart';
 import '/data/models/day.dart';
 import '/features/reflections/reflections_providers.dart';
+import '/shared/utils/user_error_message.dart';
 import '/shared/widgets/day_header.dart';
 import '/shared/widgets/empty_state.dart';
+import '/shared/widgets/expandable_panel_theme.dart';
 import '/shared/widgets/html_content_view.dart';
 import '/shared/widgets/loading_indicator.dart';
 
@@ -30,7 +32,9 @@ class ReflectionsScreen extends ConsumerWidget {
           loading: () => const Center(child: LoadingIndicator()),
           error: (e, _) => EmptyState(
             title: 'Unable to load profile',
-            message: e.toString(),
+            message: userFriendlyError(e),
+            actionLabel: 'Try again',
+            onAction: () => ref.invalidate(userProfileProvider),
           ),
           data: (profile) {
             return SingleChildScrollView(
@@ -95,15 +99,15 @@ class _StatusBody extends ConsumerWidget {
                   'Congratulations on completing Paedia.',
             ),
             const SizedBox(height: 24),
-            _PastDaysSection(),
+            const _PastDaysSection(),
           ],
         );
       case ProgrammeStatus.active:
-        return Column(
+        return const Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _TodaySection(),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             _PastDaysSection(),
           ],
         );
@@ -117,6 +121,8 @@ class _StatusBody extends ConsumerWidget {
 }
 
 class _TodaySection extends ConsumerWidget {
+  const _TodaySection();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dayAsync = ref.watch(todayDayProvider);
@@ -126,7 +132,9 @@ class _TodaySection extends ConsumerWidget {
       loading: () => const Center(child: LoadingIndicator()),
       error: (e, _) => EmptyState(
         title: 'Unable to load today',
-        message: e.toString(),
+        message: userFriendlyError(e),
+        actionLabel: 'Try again',
+        onAction: () => ref.invalidate(todayDayProvider),
       ),
       data: (day) {
         if (day == null) {
@@ -142,14 +150,37 @@ class _TodaySection extends ConsumerWidget {
 }
 
 class _PastDaysSection extends ConsumerWidget {
+  const _PastDaysSection();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pastAsync = ref.watch(pastDaysProvider);
     final theme = Theme.of(context);
 
     return pastAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      loading: () => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: LoadingIndicator(size: 20),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Loading previous days…',
+              style: theme.textTheme.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+      error: (e, _) => EmptyState(
+        title: 'Unable to load previous days',
+        message: userFriendlyError(e),
+        actionLabel: 'Try again',
+        onAction: () => ref.invalidate(pastDaysProvider),
+      ),
       data: (days) {
         if (days.isEmpty) return const SizedBox.shrink();
         return Column(
@@ -165,14 +196,45 @@ class _PastDaysSection extends ConsumerWidget {
   }
 }
 
-class _DayCard extends StatelessWidget {
+class _DayCard extends StatefulWidget {
   const _DayCard({required this.day, required this.theme});
 
   final Day day;
   final ThemeData theme;
 
   @override
+  State<_DayCard> createState() => _DayCardState();
+}
+
+class _DayCardState extends State<_DayCard> {
+  bool _exporting = false;
+
+  Future<void> _exportPdf() async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    try {
+      final doc = await const DayPdfBuilder().build(widget.day);
+      await Printing.sharePdf(
+        bytes: await doc.save(),
+        filename: 'paedia-day-${widget.day.dayNumber}.pdf',
+      );
+      await AppAnalytics.logPdfExport(dayNumber: widget.day.dayNumber);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not create PDF. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final day = widget.day;
+    final theme = widget.theme;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -186,14 +248,14 @@ class _DayCard extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: 'Export PDF',
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  onPressed: () async {
-                    final doc = await const DayPdfBuilder().build(day);
-                    await Printing.sharePdf(
-                      bytes: await doc.save(),
-                      filename: 'paedia-day-${day.dayNumber}.pdf',
-                    );
-                  },
+                  icon: _exporting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: LoadingIndicator(size: 20),
+                        )
+                      : const Icon(Icons.picture_as_pdf_outlined),
+                  onPressed: _exporting ? null : _exportPdf,
                 ),
               ],
             ),
@@ -221,6 +283,7 @@ class _DayAccordion extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ExpandableNotifier(
         child: ExpandablePanel(
+          theme: paediaExpandableTheme(context),
           header: ListTile(
             title: Text('Day ${day.dayNumber}: ${day.title}'),
             dense: true,

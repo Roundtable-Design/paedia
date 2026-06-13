@@ -13,6 +13,7 @@ import '/data/models/user_profile.dart';
 import '/features/reflections/reflections_providers.dart';
 import '/popups/delete_account/delete_account_widget.dart';
 import '/popups/select_gender/select_gender_widget.dart';
+import '/shared/utils/user_error_message.dart';
 import '/shared/widgets/empty_state.dart';
 import '/shared/widgets/loading_indicator.dart';
 
@@ -31,7 +32,9 @@ class ProfileScreen extends ConsumerWidget {
           loading: () => const Center(child: LoadingIndicator()),
           error: (e, _) => EmptyState(
             title: 'Unable to load profile',
-            message: e.toString(),
+            message: userFriendlyError(e),
+            actionLabel: 'Try again',
+            onAction: () => ref.invalidate(userProfileProvider),
           ),
           data: (profile) {
             if (profile == null) {
@@ -106,14 +109,27 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     required String field,
     required String value,
   }) async {
-    if (field == 'why') {
-      await currentUserReference?.update(
-        createUsersRecordData(whyStatement: value),
-      );
-    } else {
-      await currentUserReference?.update(
-        createUsersRecordData(closingStatement: value),
-      );
+    try {
+      if (field == 'why') {
+        await currentUserReference?.update(
+          createUsersRecordData(whyStatement: value),
+        );
+      } else {
+        await currentUserReference?.update(
+          createUsersRecordData(closingStatement: value),
+        );
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Saved')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save. Please try again.')),
+        );
+      }
     }
   }
 
@@ -127,6 +143,27 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         child: const SelectGenderWidget(),
       ),
     );
+  }
+
+  Future<void> _confirmSignOut() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text('You will need to sign in again to access Paedia.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) await _signOut();
   }
 
   Future<void> _signOut() async {
@@ -243,7 +280,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.logout),
           title: const Text('Sign out'),
-          onTap: _signOut,
+          onTap: _confirmSignOut,
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,

@@ -1,9 +1,10 @@
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
-/// Phase 5 — App Check and Crashlytics bootstrap.
+/// Phase 5 — App Check bootstrap.
 /// App Check requires console configuration before enabling in production.
+/// Error reporting: Sentry (all platforms) + Crashlytics (mobile) via
+/// [runAppWithMonitoring] in `app_monitoring.dart`.
 Future<void> initFirebaseServices() async {
   if (!kIsWeb) {
     try {
@@ -17,11 +18,5 @@ Future<void> initFirebaseServices() async {
     } catch (e) {
       debugPrint('App Check not activated: $e');
     }
-
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
   }
 }

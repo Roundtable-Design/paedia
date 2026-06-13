@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import '/app_state.dart';
 import '/auth/firebase_auth/auth_util.dart';
 import '/backend/backend.dart';
+import '/core/analytics/app_analytics.dart';
 import '/core/providers/repositories_provider.dart';
 import '/data/models/user_profile.dart';
 import '/features/reflections/reflections_providers.dart';
+import '/shared/widgets/loading_indicator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Post-auth setup: gender, start date, optional why statement.
@@ -53,7 +55,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           createUsersRecordData(whyStatement: _whyController.text.trim()),
         );
       }
-      if (mounted) context.go('/today');
+      if (mounted) {
+        await AppAnalytics.logOnboardingComplete();
+        context.go('/today');
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save your details. Please try again.'),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -102,7 +115,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 children: [
                   FilledButton(
                     onPressed: _saving ? null : details.onStepContinue,
-                    child: Text(_step == 2 ? 'Finish' : 'Continue'),
+                    child: _saving && _step == 2
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: LoadingIndicator(size: 20),
+                          )
+                        : Text(_step == 2 ? 'Finish' : 'Continue'),
                   ),
                   if (details.onStepCancel != null) ...[
                     const SizedBox(width: 12),
@@ -206,4 +225,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 bool userNeedsOnboarding(UserProfile? profile) {
   if (profile == null) return true;
   return !profile.hasGender || !profile.hasStartDate;
+}
+
+/// Destination after sign-in — matches router [postLoginRoute] logic.
+String resolvePostLoginPath() {
+  final doc = currentUserDocument;
+  if (doc != null && (!doc.hasGender() || !doc.hasStartDate())) {
+    return OnboardingScreen.routePath;
+  }
+  return '/today';
 }

@@ -6,12 +6,22 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '/pages/users/users_widget.dart';
 import '/backend/backend.dart';
 import '/core/providers/repositories_provider.dart';
+import '/shared/utils/user_error_message.dart';
 import '/shared/widgets/empty_state.dart';
 import '/shared/widgets/loading_indicator.dart';
 
 final communityGroupProvider = StreamProvider((ref) {
   return ref.watch(groupsRepositoryProvider).watchCurrentUserGroup();
 });
+
+final communityMembersProvider =
+    StreamProvider.autoDispose.family<List<UsersRecord>, List<String>>(
+  (ref, memberIds) {
+    return ref
+        .watch(groupsRepositoryProvider)
+        .watchGroupMembers(memberIds);
+  },
+);
 
 class CommunityScreen extends ConsumerWidget {
   const CommunityScreen({super.key});
@@ -28,7 +38,9 @@ class CommunityScreen extends ConsumerWidget {
           loading: () => const Center(child: LoadingIndicator()),
           error: (e, _) => EmptyState(
             title: 'Unable to load group',
-            message: e.toString(),
+            message: userFriendlyError(e),
+            actionLabel: 'Try again',
+            onAction: () => ref.invalidate(communityGroupProvider),
           ),
           data: (group) {
             if (group == null) {
@@ -52,62 +64,7 @@ class CommunityScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Expanded(
-                    child: StreamBuilder<List<UsersRecord>>(
-                      stream: ref
-                          .read(groupsRepositoryProvider)
-                          .watchGroupMembers(group.memberIds),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const Center(child: LoadingIndicator());
-                        }
-                        final members = snapshot.data!;
-                        if (members.isEmpty) {
-                          return const EmptyState(
-                            title: 'No members found',
-                            message: 'This group has no visible members yet.',
-                          );
-                        }
-                        return ListView.separated(
-                          itemCount: members.length,
-                          separatorBuilder: (_, __) =>
-                              const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final member = members[index];
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundImage: member.photoUrl.isNotEmpty
-                                    ? NetworkImage(member.photoUrl)
-                                    : null,
-                                child: member.photoUrl.isEmpty
-                                    ? Text(
-                                        member.displayName.isNotEmpty
-                                            ? member.displayName[0]
-                                                .toUpperCase()
-                                            : '?',
-                                      )
-                                    : null,
-                              ),
-                              title: Text(
-                                member.displayName.isNotEmpty
-                                    ? member.displayName
-                                    : member.email,
-                              ),
-                              onTap: () {
-                                context.pushNamed(
-                                  UsersWidget.routeName,
-                                  queryParameters: {
-                                    'user': serializeParam(
-                                      member.reference,
-                                      ParamType.DocumentReference,
-                                    ),
-                                  }.withoutNulls,
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
+                    child: _MembersList(memberIds: group.memberIds),
                   ),
                 ],
               ),
@@ -115,6 +72,72 @@ class CommunityScreen extends ConsumerWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+class _MembersList extends ConsumerWidget {
+  const _MembersList({required this.memberIds});
+
+  final List<String> memberIds;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final membersAsync = ref.watch(communityMembersProvider(memberIds));
+
+    return membersAsync.when(
+      loading: () => const Center(child: LoadingIndicator()),
+      error: (e, _) => EmptyState(
+        title: 'Unable to load members',
+        message: userFriendlyError(e),
+        actionLabel: 'Try again',
+        onAction: () => ref.invalidate(communityMembersProvider(memberIds)),
+      ),
+      data: (members) {
+        if (members.isEmpty) {
+          return const EmptyState(
+            title: 'No members found',
+            message: 'This group has no visible members yet.',
+          );
+        }
+        return ListView.separated(
+          itemCount: members.length,
+          separatorBuilder: (_, __) => const Divider(height: 1),
+          itemBuilder: (context, index) {
+            final member = members[index];
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundImage: member.photoUrl.isNotEmpty
+                    ? NetworkImage(member.photoUrl)
+                    : null,
+                child: member.photoUrl.isEmpty
+                    ? Text(
+                        member.displayName.isNotEmpty
+                            ? member.displayName[0].toUpperCase()
+                            : '?',
+                      )
+                    : null,
+              ),
+              title: Text(
+                member.displayName.isNotEmpty
+                    ? member.displayName
+                    : member.email,
+              ),
+              onTap: () {
+                context.pushNamed(
+                  UsersWidget.routeName,
+                  queryParameters: {
+                    'user': serializeParam(
+                      member.reference,
+                      ParamType.DocumentReference,
+                    ),
+                  }.withoutNulls,
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }

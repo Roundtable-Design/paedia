@@ -15,6 +15,7 @@ Read [docs/PRODUCTION_SAFETY.md](docs/PRODUCTION_SAFETY.md) before any `firebase
 | [STAGING.md](docs/STAGING.md) | Staging Firebase project |
 | [RELEASE.md](docs/RELEASE.md) | TestFlight / Play checklist |
 | [PHASE5_HARDENING.md](docs/PHASE5_HARDENING.md) | Security rollout |
+| [MONITORING.md](docs/MONITORING.md) | Sentry + Firebase Analytics |
 
 ## Prerequisites
 

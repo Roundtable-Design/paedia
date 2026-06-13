@@ -19,6 +19,8 @@ import 'serialization_util.dart';
 import '/auth/firebase_auth/auth_util.dart';
 
 import '/app/router/shell_scaffold.dart';
+import '/core/analytics/app_analytics.dart';
+import '/core/monitoring/app_monitoring.dart';
 import '/features/auth/login_screen.dart';
 import '/features/auth/onboarding_screen.dart';
 import '/features/community/community_screen.dart';
@@ -112,6 +114,10 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) {
       debugLogDiagnostics: true,
       refreshListenable: appStateNotifier,
       navigatorKey: appNavigatorKey,
+      observers: [
+        AppAnalytics.observer,
+        ...monitoringNavigatorObservers(),
+      ],
       redirect: (context, state) {
         if (appStateNotifier.shouldRedirect) {
           final redirectLocation = appStateNotifier.getRedirectLocation();

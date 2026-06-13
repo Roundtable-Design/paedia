@@ -28,9 +28,18 @@ See [STAGING.md](STAGING.md).
 
 See [RELEASE.md](RELEASE.md).
 
-## Crashlytics
+## Crashlytics + Sentry
 
-Add `firebase_crashlytics` and report uncaught Flutter errors.
+- **Crashlytics** — mobile uncaught errors (already wired).
+- **Sentry** — errors + performance on web, iOS, and Android. Free Developer tier. See [MONITORING.md](MONITORING.md).
+
+```bash
+flutter run --dart-define=SENTRY_DSN=https://YOUR_KEY@oXXXX.ingest.sentry.io/XXXX
+```
+
+## Firebase Analytics
+
+Product events (login, onboarding, tab changes, PDF export) via `firebase_analytics`. See [MONITORING.md](MONITORING.md).
 
 ## Release pipeline
 

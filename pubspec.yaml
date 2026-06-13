@@ -135,6 +135,9 @@ dependencies:
   fwfh_url_launcher: ^0.16.0
   pdf: ^3.11.3
   printing: ^5.14.2
+  sentry_flutter: ^9.22.0
+  firebase_analytics: ^11.5.0
+  package_info_plus: ^9.0.1
 
 dependency_overrides:
   http: 1.4.0

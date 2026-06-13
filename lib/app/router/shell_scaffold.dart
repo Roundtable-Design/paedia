@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '/core/analytics/app_analytics.dart';
 import '/shared/widgets/offline_banner.dart';
 import '/shared/widgets/paedia_bottom_nav.dart';
 
@@ -23,10 +24,17 @@ class ShellScaffold extends StatelessWidget {
           const OfflineBanner(),
           PaediaBottomNav(
             currentIndex: navigationShell.currentIndex,
-            onTap: (index) => navigationShell.goBranch(
-              index,
-              initialLocation: index == navigationShell.currentIndex,
-            ),
+            onTap: (index) {
+              if (index != navigationShell.currentIndex) {
+                AppAnalytics.logTabSelected(
+                  tab: PaediaBottomNav.labels[index],
+                );
+              }
+              navigationShell.goBranch(
+                index,
+                initialLocation: index == navigationShell.currentIndex,
+              );
+            },
           ),
         ],
       ),

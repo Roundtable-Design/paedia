@@ -10,6 +10,7 @@ import 'auth/firebase_auth/firebase_user_provider.dart';
 import 'auth/firebase_auth/auth_util.dart';
 import '/backend/firebase/firebase_config.dart';
 import '/core/firebase/app_services.dart';
+import '/core/monitoring/app_monitoring.dart';
 import '/core/services/content_prefetch_service.dart';
 import '/core/services/days_cache_holder.dart';
 import '/data/local/sqflite_days_cache.dart';
@@ -18,13 +19,18 @@ import 'flutter_flow/flutter_flow_util.dart';
 import 'flutter_flow/nav/nav.dart';
 import '/shared/theme/paedia_theme.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   GoRouter.optionURLReflectsImperativeAPIs = true;
   usePathUrlStrategy();
 
   await initFirebase();
   await initFirebaseServices();
+
+  await runAppWithMonitoring(_bootstrapAndRun);
+}
+
+Future<void> _bootstrapAndRun() async {
   if (!kIsWeb) {
     DaysCacheHolder.instance = await SqfliteDaysCache.open();
   }
@@ -98,11 +104,14 @@ class _MyAppState extends State<MyApp> {
         _appStateNotifier.update(user);
         if (user.loggedIn) {
           prefetchService.prefetchForCurrentUser();
+          setMonitoringUser(userId: user.uid);
+        } else {
+          setMonitoringUser(userId: null);
         }
       });
     jwtTokenStream.listen((_) {});
     Future.delayed(
-      const Duration(milliseconds: 1000),
+      const Duration(milliseconds: 300),
       () => _appStateNotifier.stopShowingSplashImage(),
     );
   }

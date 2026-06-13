@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '/core/providers/repositories_provider.dart';
 import '/data/models/manual_section.dart';
 import '/features/reflections/reflections_providers.dart';
+import '/shared/utils/user_error_message.dart';
 import '/shared/widgets/empty_state.dart';
+import '/shared/widgets/expandable_panel_theme.dart';
 import '/shared/widgets/html_content_view.dart';
 import '/shared/widgets/loading_indicator.dart';
 
@@ -35,7 +37,9 @@ class ParticipantManualScreen extends ConsumerWidget {
         loading: () => const Center(child: LoadingIndicator()),
         error: (e, _) => EmptyState(
           title: 'Unable to load manual',
-          message: e.toString(),
+          message: userFriendlyError(e),
+          actionLabel: 'Try again',
+          onAction: () => ref.invalidate(participantManualProvider),
         ),
         data: (sections) {
           if (gender.isEmpty) {
@@ -78,6 +82,7 @@ class _ManualSectionTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ExpandableNotifier(
         child: ExpandablePanel(
+          theme: paediaExpandableTheme(context),
           header: Padding(
             padding: const EdgeInsets.all(12),
             child: Text(
