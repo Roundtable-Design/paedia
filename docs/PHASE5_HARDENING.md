@@ -4,22 +4,29 @@ Planned before store release. **Do not deploy rules without App Check + coordina
 
 ## Firebase App Check
 
+See [APP_CHECK_SETUP.md](APP_CHECK_SETUP.md).
+
 1. Enable App Check in Firebase console for iOS, Android, Web.
-2. Add `firebase_app_check` to the app and activate in `initFirebase()`.
-3. Register debug tokens for local dev simulators.
+2. Register debug tokens for local dev simulators.
+3. Enable enforcement before deploying proposed rules.
 
 ## Firestore rules PR (planned)
 
-- Scope `users` writes to `request.auth.uid == documentId`.
-- Remove FlutterFlow service account rule when fully off FlutterFlow.
-- Remove expired May 2025 temporary rule.
-- Test in Rules Playground + staging project before prod deploy.
+Proposed rules: [`firebase/firestore.rules.proposed`](../firebase/firestore.rules.proposed)
 
-See [PRODUCTION_SAFETY.md](PRODUCTION_SAFETY.md).
+- Scope `users` writes to `request.auth.uid == userId`
+- Remove FlutterFlow service account rule
+- Remove expired May 2025 temporary rule
 
-## Staging project
+Deploy only after App Check + client update. See [STAGING.md](STAGING.md) for staging validation.
 
-Create `paedia-staging` Firebase project for rules and CMS experiments before touching prod rules.
+## Staging Firebase project
+
+See [STAGING.md](STAGING.md).
+
+## Store release
+
+See [RELEASE.md](RELEASE.md).
 
 ## Crashlytics
 

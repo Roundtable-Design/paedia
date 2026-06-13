@@ -160,15 +160,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) {
           redirect: (_, __) => '/community',
         ),
         GoRoute(
-          path: GroupWidget.routePath,
-          redirect: (_, __) => '/community',
-        ),
-        GoRoute(
           path: '/manual',
-          redirect: (_, __) => '/manuals',
-        ),
-        GoRoute(
-          path: ManualWidget.routePath,
           redirect: (_, __) => '/manuals',
         ),
         StatefulShellRoute.indexedStack(

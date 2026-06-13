@@ -6,7 +6,15 @@ Native Flutter app for [Paedia.co](https://paedia.co) — a 90-day Christian dis
 
 ## Production safety
 
-Read [docs/PRODUCTION_SAFETY.md](docs/PRODUCTION_SAFETY.md) before any `firebase deploy`. Bootstrap work is local-only; production was not modified.
+Read [docs/PRODUCTION_SAFETY.md](docs/PRODUCTION_SAFETY.md) before any `firebase deploy`. Proposed rules live in `firebase/firestore.rules.proposed` (not deployed).
+
+| Doc | Purpose |
+|-----|---------|
+| [TEST_ACCOUNTS.md](docs/TEST_ACCOUNTS.md) | Local QA sign-in |
+| [APP_CHECK_SETUP.md](docs/APP_CHECK_SETUP.md) | Before rules deploy |
+| [STAGING.md](docs/STAGING.md) | Staging Firebase project |
+| [RELEASE.md](docs/RELEASE.md) | TestFlight / Play checklist |
+| [PHASE5_HARDENING.md](docs/PHASE5_HARDENING.md) | Security rollout |
 
 ## Prerequisites
 
