@@ -1,22 +1,36 @@
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
 
+/// reCAPTCHA v3 site key from Firebase App Check → Web app registration.
+/// Pass via: `--dart-define=RECAPTCHA_SITE_KEY=...`
+const String kRecaptchaSiteKey = String.fromEnvironment('RECAPTCHA_SITE_KEY');
+
 /// Phase 5 — App Check bootstrap.
-/// App Check requires console configuration before enabling in production.
-/// Error reporting: Sentry (all platforms) + Crashlytics (mobile) via
-/// [runAppWithMonitoring] in `app_monitoring.dart`.
+/// Error reporting: Sentry + Crashlytics via `app_monitoring.dart`.
 Future<void> initFirebaseServices() async {
-  if (!kIsWeb) {
-    try {
+  try {
+    if (kIsWeb) {
+      if (kRecaptchaSiteKey.isEmpty) {
+        debugPrint(
+          'App Check (web): set RECAPTCHA_SITE_KEY via --dart-define after '
+          'registering reCAPTCHA in Firebase Console.',
+        );
+        return;
+      }
       await FirebaseAppCheck.instance.activate(
-        androidProvider: kDebugMode
-            ? AndroidProvider.debug
-            : AndroidProvider.playIntegrity,
-        appleProvider:
-            kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
+        webProvider: ReCaptchaV3Provider(kRecaptchaSiteKey),
       );
-    } catch (e) {
-      debugPrint('App Check not activated: $e');
+      return;
     }
+
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: kDebugMode
+          ? AndroidProvider.debug
+          : AndroidProvider.playIntegrity,
+      appleProvider:
+          kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
+    );
+  } catch (e) {
+    debugPrint('App Check not activated: $e');
   }
 }

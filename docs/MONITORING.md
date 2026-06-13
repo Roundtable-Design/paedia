@@ -18,20 +18,25 @@ Both are excellent for **backend / infra / large teams**, but overkill for a Flu
 
 **Sentry + Firebase** gives you production-grade client monitoring at **$0** until you outgrow quotas.
 
-## Sentry setup (5 minutes)
+## Sentry setup (done via MCP)
 
-1. Create a free org at [sentry.io/signup](https://sentry.io/signup) (Developer plan).
-2. Add a **Flutter** project and copy the DSN.
-3. Run locally with the DSN (never commit it):
+- **Org:** roundtable-studio ([de.sentry.io](https://roundtable-studio.sentry.io))
+- **Project:** `paedia` (Flutter)
+- **DSN:** stored in GitHub Actions secret `SENTRY_DSN` (not in git)
+
+Local run:
 
 ```bash
+# DSN is in GitHub → Settings → Secrets → SENTRY_DSN, or Sentry → paedia → Client Keys
 flutter run -d chrome \
-  --dart-define=SENTRY_DSN=https://YOUR_KEY@oXXXX.ingest.us.sentry.io/XXXX
+  --dart-define=SENTRY_DSN=<paste-from-sentry-or-gh-secret>
 ```
 
-4. For CI/release builds, inject `SENTRY_DSN` via GitHub Actions secrets or your store build pipeline.
+Dashboard: https://roundtable-studio.sentry.io/projects/paedia/
 
-5. Optional: upload debug symbols for readable stack traces:
+For CI/release builds, `SENTRY_DSN` is already in GitHub Actions secrets.
+
+Optional: upload debug symbols for readable stack traces:
 
 ```bash
 dart run sentry_dart_plugin --help

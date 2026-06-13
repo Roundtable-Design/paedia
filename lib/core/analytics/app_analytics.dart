@@ -2,12 +2,22 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 
 /// Product analytics via Firebase Analytics (free, unlimited events with quotas).
+/// SDK is included via `firebase_analytics` — no extra native install needed.
+/// After enabling Analytics in Firebase Console, click **Finish** on the SDK step.
 class AppAnalytics {
   AppAnalytics._();
 
   static final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
   static final FirebaseAnalyticsObserver observer =
       FirebaseAnalyticsObserver(analytics: _analytics);
+
+  static Future<void> initialize() async {
+    await _analytics.setAnalyticsCollectionEnabled(!kDebugMode);
+  }
+
+  static Future<void> setUserId(String? userId) async {
+    await _analytics.setUserId(id: userId);
+  }
 
   static Future<void> logScreenView({
     required String screenName,

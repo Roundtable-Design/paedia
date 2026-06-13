@@ -11,6 +11,7 @@ import 'auth/firebase_auth/auth_util.dart';
 import '/backend/firebase/firebase_config.dart';
 import '/core/firebase/app_services.dart';
 import '/core/monitoring/app_monitoring.dart';
+import '/core/analytics/app_analytics.dart';
 import '/core/services/content_prefetch_service.dart';
 import '/core/services/days_cache_holder.dart';
 import '/data/local/sqflite_days_cache.dart';
@@ -26,6 +27,7 @@ Future<void> main() async {
 
   await initFirebase();
   await initFirebaseServices();
+  await AppAnalytics.initialize();
 
   await runAppWithMonitoring(_bootstrapAndRun);
 }
@@ -105,8 +107,10 @@ class _MyAppState extends State<MyApp> {
         if (user.loggedIn) {
           prefetchService.prefetchForCurrentUser();
           setMonitoringUser(userId: user.uid);
+          AppAnalytics.setUserId(user.uid);
         } else {
           setMonitoringUser(userId: null);
+          AppAnalytics.setUserId(null);
         }
       });
     jwtTokenStream.listen((_) {});

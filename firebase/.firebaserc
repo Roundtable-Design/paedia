@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "paedia-fqv6h9"
+    "default": "paedia-fqv6h9",
+    "production": "paedia-fqv6h9",
+    "staging": "paedia-staging"
   }
 }
