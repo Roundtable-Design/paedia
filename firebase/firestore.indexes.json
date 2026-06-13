@@ -1,0 +1,32 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "accessoryManual",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "gender",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "participant_manual",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "gender",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "Position",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ]
+}

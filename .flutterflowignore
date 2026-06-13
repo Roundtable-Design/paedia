@@ -1,0 +1,11 @@
+# Files to preserve when re-exporting from FlutterFlow CLI.
+# See: https://docs.flutterflow.io/flutterflow-cli/exporting
+
+.env
+.env.*
+docs/
+firebase/firestore.rules
+firebase/storage.rules
+lib/custom/
+lib/services/
+pubspec.yaml
