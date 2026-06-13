@@ -1,7 +1,10 @@
 import 'package:expandable/expandable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:printing/printing.dart';
+import '/core/pdf/day_pdf_builder.dart';
 
 import '/core/domain/date_math.dart';
 import '/data/models/day.dart';
@@ -176,7 +179,24 @@ class _DayCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(day.title, style: theme.textTheme.titleMedium),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(day.title, style: theme.textTheme.titleMedium),
+                ),
+                IconButton(
+                  tooltip: 'Export PDF',
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  onPressed: () async {
+                    final doc = await const DayPdfBuilder().build(day);
+                    await Printing.sharePdf(
+                      bytes: await doc.save(),
+                      filename: 'paedia-day-${day.dayNumber}.pdf',
+                    );
+                  },
+                ),
+              ],
+            ),
             if (day.subtitle.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(day.subtitle, style: theme.textTheme.bodyMedium),

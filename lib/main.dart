@@ -9,7 +9,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'auth/firebase_auth/firebase_user_provider.dart';
 import 'auth/firebase_auth/auth_util.dart';
 
-import 'backend/firebase/firebase_config.dart';
+import 'package:flutter/foundation.dart';
+
+import '/backend/firebase/firebase_config.dart';
+import '/core/firebase/app_services.dart';
+import '/core/services/days_cache_holder.dart';
+import '/data/local/sqflite_days_cache.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import 'flutter_flow/flutter_flow_util.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -26,6 +31,10 @@ void main() async {
   usePathUrlStrategy();
 
   await initFirebase();
+  await initFirebaseServices();
+  if (!kIsWeb) {
+    DaysCacheHolder.instance = await SqfliteDaysCache.open();
+  }
 
   await FlutterFlowTheme.initialize();
 

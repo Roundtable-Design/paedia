@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '/backend/backend.dart';
 import '/data/models/manual_section.dart';
 
@@ -7,7 +9,12 @@ class ManualsRepository {
       queryBuilder: (q) {
         var query = q.orderBy('Position');
         if (gender != null && gender.isNotEmpty) {
-          query = query.where('gender', isEqualTo: gender);
+          query = query.where(
+            Filter.or(
+              Filter('gender', isEqualTo: gender),
+              Filter('gender', isEqualTo: 'both'),
+            ),
+          );
         }
         return query;
       },
@@ -22,7 +29,12 @@ class ManualsRepository {
       queryBuilder: (q) {
         var query = q.orderBy('order');
         if (gender != null && gender.isNotEmpty) {
-          query = query.where('gender', isEqualTo: gender);
+          query = query.where(
+            Filter.or(
+              Filter('gender', isEqualTo: gender),
+              Filter('gender', isEqualTo: 'both'),
+            ),
+          );
         }
         return query;
       },

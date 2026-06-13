@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '/features/reflections/reflections_providers.dart';
-import '/index.dart';
+import '/features/manuals/accessory_manual_screen.dart';
+import '/features/manuals/participant_manual_screen.dart';
 import '/shared/widgets/empty_state.dart';
 
 class ManualHubScreen extends ConsumerWidget {
@@ -43,7 +44,7 @@ class ManualHubScreen extends ConsumerWidget {
                   'Core programme readings and guidance for your 90-day journey.',
               icon: Icons.menu_book_outlined,
               onTap: () =>
-                  context.pushNamed(ParticipantManualWidget.routeName),
+                  context.pushNamed(ParticipantManualScreen.routeName),
             ),
             const SizedBox(height: 12),
             _ManualCard(
@@ -51,7 +52,7 @@ class ManualHubScreen extends ConsumerWidget {
               description:
                   'Supplementary material and additional resources.',
               icon: Icons.library_books_outlined,
-              onTap: () => context.pushNamed(AccessoryManualWidget.routeName),
+              onTap: () => context.pushNamed(AccessoryManualScreen.routeName),
             ),
             if (profile?.gender.isEmpty ?? true)
               const Padding(

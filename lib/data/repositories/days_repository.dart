@@ -1,9 +1,16 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '/backend/backend.dart';
 import '/core/domain/date_math.dart';
+import '/data/local/offline_cache.dart';
 import '/data/models/day.dart';
 
-/// Repository for programme day content from Firestore.
+/// Repository for programme day content from Firestore with optional local cache.
 class DaysRepository {
+  DaysRepository({OfflineDaysCache? cache}) : _cache = cache;
+
+  final OfflineDaysCache? _cache;
+
   Stream<List<DaysRecord>> watchDays({
     Query Function(Query)? queryBuilder,
     int limit = -1,
@@ -20,7 +27,13 @@ class DaysRepository {
     return watchDays(
       queryBuilder: (q) => q.where('DayNumber', isEqualTo: dayNumber),
       singleRecord: true,
-    ).map((records) => toDomain(records.isEmpty ? null : records.first));
+    ).asyncMap((records) async {
+      final domain = toDomain(records.isEmpty ? null : records.first);
+      if (domain != null) {
+        await _cache?.putDay(domain);
+      }
+      return domain ?? await _cache?.getDay(dayNumber);
+    });
   }
 
   Stream<Day?> watchToday(DateTime? startDate) {
@@ -41,6 +54,18 @@ class DaysRepository {
           .where('DayNumber', isLessThan: currentDay)
           .orderBy('DayNumber', descending: true),
     ).map(toDomainList);
+  }
+
+  Future<Day?> getDayCachedFirst(int dayNumber) async {
+    final cached = await _cache?.getDay(dayNumber);
+    if (cached != null) return cached;
+    final records = await getDaysOnce(
+      queryBuilder: (q) => q.where('DayNumber', isEqualTo: dayNumber),
+      singleRecord: true,
+    );
+    final domain = toDomain(records.isEmpty ? null : records.first);
+    if (domain != null) await _cache?.putDay(domain);
+    return domain;
   }
 
   Future<List<DaysRecord>> getDaysOnce({

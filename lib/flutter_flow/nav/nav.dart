@@ -16,9 +16,15 @@ import '/flutter_flow/place.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'serialization_util.dart';
 
+import '/auth/firebase_auth/auth_util.dart';
+
 import '/app/router/shell_scaffold.dart';
+import '/features/auth/login_screen.dart';
+import '/features/auth/onboarding_screen.dart';
 import '/features/community/community_screen.dart';
+import '/features/manuals/accessory_manual_screen.dart';
 import '/features/manuals/manual_hub_screen.dart';
+import '/features/manuals/participant_manual_screen.dart';
 import '/features/profile/profile_screen.dart';
 import '/features/reflections/reflections_screen.dart';
 import '/index.dart';
@@ -85,8 +91,16 @@ class AppStateNotifier extends ChangeNotifier {
 
 GoRouter createRouter(AppStateNotifier appStateNotifier) {
   bool isPublicRoute(String path) {
-    return path == LoginWidget.routePath ||
+    return path == LoginScreen.routePath ||
         path == ForgotPasswordWidget.routePath;
+  }
+
+  String postLoginRoute() {
+    final doc = currentUserDocument;
+    if (doc != null && (!doc.hasGender() || !doc.hasStartDate())) {
+      return OnboardingScreen.routePath;
+    }
+    return '/today';
   }
 
   Page<void> buildPage(GoRouterState state, Widget page) {
@@ -108,12 +122,20 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) {
         final path = state.uri.path;
         if (!appStateNotifier.loggedIn && !isPublicRoute(path)) {
           appStateNotifier.setRedirectLocationIfUnset(state.uri.toString());
-          return LoginWidget.routePath;
+          return LoginScreen.routePath;
         }
 
         if (appStateNotifier.loggedIn &&
-            (path == '/' || path == LoginWidget.routePath)) {
-          return '/today';
+            (path == '/' || path == LoginScreen.routePath)) {
+          return postLoginRoute();
+        }
+
+        if (appStateNotifier.loggedIn &&
+            path == OnboardingScreen.routePath) {
+          final doc = currentUserDocument;
+          if (doc != null && doc.hasGender() && doc.hasStartDate()) {
+            return '/today';
+          }
         }
 
         return null;
@@ -121,12 +143,13 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) {
       errorBuilder: (context, state) =>
           appStateNotifier.loggedIn
               ? const ReflectionsScreen()
-              : LoginWidget(),
+              : const LoginScreen(),
       routes: [
         GoRoute(
           path: '/',
-          redirect: (_, __) =>
-              appStateNotifier.loggedIn ? '/today' : LoginWidget.routePath,
+          redirect: (_, __) => appStateNotifier.loggedIn
+              ? postLoginRoute()
+              : LoginScreen.routePath,
         ),
         GoRoute(
           path: '/reflections',
@@ -203,10 +226,18 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) {
             ),
           ],
         ),
+        GoRoute(
+          path: OnboardingScreen.routePath,
+          name: OnboardingScreen.routeName,
+          pageBuilder: (context, state) => buildPage(
+            state,
+            const OnboardingScreen(),
+          ),
+        ),
         FFRoute(
-          name: LoginWidget.routeName,
-          path: LoginWidget.routePath,
-          builder: (context, params) => LoginWidget(),
+          name: LoginScreen.routeName,
+          path: LoginScreen.routePath,
+          builder: (context, params) => const LoginScreen(),
         ).toRoute(appStateNotifier),
         FFRoute(
           name: ForgotPasswordWidget.routeName,
@@ -226,14 +257,14 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) {
           ),
         ).toRoute(appStateNotifier),
         FFRoute(
-          name: AccessoryManualWidget.routeName,
-          path: AccessoryManualWidget.routePath,
-          builder: (context, params) => AccessoryManualWidget(),
+          name: AccessoryManualScreen.routeName,
+          path: AccessoryManualScreen.routePath,
+          builder: (context, params) => const AccessoryManualScreen(),
         ).toRoute(appStateNotifier),
         FFRoute(
-          name: ParticipantManualWidget.routeName,
-          path: ParticipantManualWidget.routePath,
-          builder: (context, params) => ParticipantManualWidget(),
+          name: ParticipantManualScreen.routeName,
+          path: ParticipantManualScreen.routePath,
+          builder: (context, params) => const ParticipantManualScreen(),
         ).toRoute(appStateNotifier),
       ]);
 }
