@@ -18,6 +18,8 @@ import 'serialization_util.dart';
 
 import '/app/router/shell_scaffold.dart';
 import '/features/community/community_screen.dart';
+import '/features/manuals/manual_hub_screen.dart';
+import '/features/profile/profile_screen.dart';
 import '/features/reflections/reflections_screen.dart';
 import '/index.dart';
 
@@ -182,7 +184,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) {
                   name: 'Manuals',
                   pageBuilder: (context, state) => buildPage(
                     state,
-                    ManualWidget(),
+                    const ManualHubScreen(),
                   ),
                 ),
               ],
@@ -194,7 +196,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) {
                   name: 'Profile',
                   pageBuilder: (context, state) => buildPage(
                     state,
-                    ProfileWidget(),
+                    const ProfileScreen(),
                   ),
                 ),
               ],
