@@ -1,177 +1,105 @@
-import '/auth/firebase_auth/auth_util.dart';
-import '/backend/backend.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
-import 'dart:ui';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import 'select_gender_model.dart';
-export 'select_gender_model.dart';
 
-class SelectGenderWidget extends StatefulWidget {
+import '/core/providers/repositories_provider.dart';
+import '/features/reflections/reflections_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class SelectGenderWidget extends ConsumerStatefulWidget {
   const SelectGenderWidget({super.key});
 
   @override
-  State<SelectGenderWidget> createState() => _SelectGenderWidgetState();
+  ConsumerState<SelectGenderWidget> createState() => _SelectGenderWidgetState();
 }
 
-class _SelectGenderWidgetState extends State<SelectGenderWidget> {
-  late SelectGenderModel _model;
+class _SelectGenderWidgetState extends ConsumerState<SelectGenderWidget> {
+  bool _saving = false;
 
-  @override
-  void setState(VoidCallback callback) {
-    super.setState(callback);
-    _model.onUpdate();
+  String? _normalizeGender(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    switch (raw.toLowerCase()) {
+      case 'male':
+      case 'm':
+        return 'male';
+      case 'female':
+      case 'f':
+        return 'female';
+      default:
+        return null;
+    }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _model = createModel(context, () => SelectGenderModel());
-
-    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _model.maybeDispose();
-
-    super.dispose();
+  Future<void> _select(String gender) async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(userRepositoryProvider).updateGender(gender);
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save gender. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 270.0,
-      decoration: BoxDecoration(
-        color: FlutterFlowTheme.of(context).secondaryBackground,
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 5.0,
-            color: Color(0x3B1D2429),
-            offset: Offset(
-              0.0,
-              -3.0,
-            ),
-          )
-        ],
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16.0),
-          topRight: Radius.circular(16.0),
-        ),
-      ),
+    final theme = Theme.of(context);
+    final currentGender = ref.watch(userProfileProvider).valueOrNull?.gender;
+    final normalized = _normalizeGender(currentGender);
+    final selected = normalized != null ? {normalized} : const <String>{};
+
+    return Material(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       child: Padding(
-        padding: EdgeInsets.all(valueOrDefault<double>(
-          FFAppConstants.SmallPadding.toDouble(),
-          0.0,
-        )),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: Column(
-          mainAxisSize: MainAxisSize.max,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(
-                  0.0,
-                  valueOrDefault<double>(
-                    FFAppConstants.MedPadding.toDouble(),
-                    0.0,
-                  ),
-                  0.0,
-                  0.0),
-              child: Text(
-                'Select your gender',
-                textAlign: TextAlign.start,
-                style: FlutterFlowTheme.of(context).titleLarge.override(
-                      font: GoogleFonts.interTight(
-                        fontWeight:
-                            FlutterFlowTheme.of(context).titleLarge.fontWeight,
-                        fontStyle:
-                            FlutterFlowTheme.of(context).titleLarge.fontStyle,
-                      ),
-                      letterSpacing: 0.0,
-                      fontWeight:
-                          FlutterFlowTheme.of(context).titleLarge.fontWeight,
-                      fontStyle:
-                          FlutterFlowTheme.of(context).titleLarge.fontStyle,
-                    ),
-              ),
-            ),
-            FFButtonWidget(
-              onPressed: () async {
-                await currentUserReference!.update(createUsersRecordData(
-                  gender: 'male',
-                ));
-                Navigator.pop(context);
-              },
-              text: 'Male',
-              options: FFButtonOptions(
-                width: double.infinity,
-                height: 60.0,
-                padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
-                iconPadding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
-                color: FlutterFlowTheme.of(context).secondaryBackground,
-                textStyle: FlutterFlowTheme.of(context).bodyLarge.override(
-                      font: GoogleFonts.inter(
-                        fontWeight:
-                            FlutterFlowTheme.of(context).bodyLarge.fontWeight,
-                        fontStyle:
-                            FlutterFlowTheme.of(context).bodyLarge.fontStyle,
-                      ),
-                      color: FlutterFlowTheme.of(context).primary,
-                      letterSpacing: 0.0,
-                      fontWeight:
-                          FlutterFlowTheme.of(context).bodyLarge.fontWeight,
-                      fontStyle:
-                          FlutterFlowTheme.of(context).bodyLarge.fontStyle,
-                    ),
-                elevation: 2.0,
-                borderSide: BorderSide(
-                  color: Colors.transparent,
-                  width: 1.0,
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            FFButtonWidget(
-              onPressed: () async {
-                await currentUserReference!.update(createUsersRecordData(
-                  gender: 'female',
-                ));
-                Navigator.pop(context);
-              },
-              text: 'Female',
-              options: FFButtonOptions(
-                width: double.infinity,
-                height: 60.0,
-                padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
-                iconPadding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
-                color: FlutterFlowTheme.of(context).secondaryBackground,
-                textStyle: FlutterFlowTheme.of(context).bodyLarge.override(
-                      font: GoogleFonts.inter(
-                        fontWeight:
-                            FlutterFlowTheme.of(context).bodyLarge.fontWeight,
-                        fontStyle:
-                            FlutterFlowTheme.of(context).bodyLarge.fontStyle,
-                      ),
-                      color: FlutterFlowTheme.of(context).primary,
-                      letterSpacing: 0.0,
-                      fontWeight:
-                          FlutterFlowTheme.of(context).bodyLarge.fontWeight,
-                      fontStyle:
-                          FlutterFlowTheme.of(context).bodyLarge.fontStyle,
-                    ),
-                elevation: 2.0,
-                borderSide: BorderSide(
-                  color: Colors.transparent,
-                  width: 1.0,
+            Text('Select your gender', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(
+              'Content is tailored to your gender.',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            SegmentedButton<String>(
+              emptySelectionAllowed: true,
+              segments: const [
+                ButtonSegment(value: 'male', label: Text('Male')),
+                ButtonSegment(value: 'female', label: Text('Female')),
+              ],
+              selected: selected,
+              onSelectionChanged: _saving ? null : (s) => _select(s.first),
+            ),
+            if (_saving) ...[
+              const SizedBox(height: 16),
+              const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               ),
-            ),
-          ].divide(SizedBox(height: 10.0)),
+            ],
+          ],
         ),
       ),
     );

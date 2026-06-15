@@ -1,52 +1,93 @@
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 import '/data/models/day.dart';
+import '/shared/utils/html_text.dart';
 
 /// Builds a printable PDF for a programme day (Phase 4).
 class DayPdfBuilder {
   const DayPdfBuilder();
 
   Future<pw.Document> build(Day day) async {
-    final doc = pw.Document();
+    final bodyFont = await PdfGoogleFonts.interRegular();
+    final boldFont = await PdfGoogleFonts.interSemiBold();
+
+    final bodyStyle = pw.TextStyle(
+      font: bodyFont,
+      fontSize: 11,
+      lineSpacing: 4,
+    );
+    final titleStyle = pw.TextStyle(
+      font: boldFont,
+      fontSize: 18,
+      lineSpacing: 4,
+    );
+    final sectionStyle = pw.TextStyle(
+      font: boldFont,
+      fontSize: 12,
+      lineSpacing: 4,
+    );
+    final metaStyle = pw.TextStyle(
+      font: bodyFont,
+      fontSize: 10,
+      color: PdfColors.grey700,
+    );
+
+    pw.Widget body(String html) =>
+        pw.Text(pdfPlainText(html), style: bodyStyle);
+
+    pw.Widget section(String title, String html) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.SizedBox(height: 16),
+            pw.Text(title, style: sectionStyle),
+            pw.SizedBox(height: 6),
+            body(html),
+          ],
+        );
+
+    final doc = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: bodyFont,
+        bold: boldFont,
+      ),
+    );
+
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(48),
         build: (context) => [
-          pw.Header(
-            level: 0,
-            child: pw.Text('Paedia — Day ${day.dayNumber}'),
-          ),
-          pw.Text(day.title, style: pw.TextStyle(fontSize: 18)),
+          pw.Text('Paedia - Day ${day.dayNumber}', style: metaStyle),
+          pw.SizedBox(height: 4),
+          pw.Text(day.title, style: titleStyle),
           if (day.subtitle.isNotEmpty) ...[
             pw.SizedBox(height: 8),
-            pw.Text(day.subtitle),
+            body(day.subtitle),
           ],
-          if (day.preamble.isNotEmpty) ...[
-            pw.SizedBox(height: 16),
-            pw.Text('Preamble', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-            pw.Text(_stripHtml(day.preamble)),
-          ],
-          if (day.scripture.isNotEmpty) ...[
-            pw.SizedBox(height: 16),
-            pw.Text('Scripture', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-            pw.Text(_stripHtml(day.scripture)),
-          ],
-          if (day.reflection.isNotEmpty) ...[
-            pw.SizedBox(height: 16),
-            pw.Text(
-              day.reflectionTitle.isNotEmpty ? day.reflectionTitle : 'Reflection',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          if (day.preamble.isNotEmpty) section('Preamble', day.preamble),
+          if (day.scripture.isNotEmpty) section('Scripture', day.scripture),
+          if (day.callToPrayer.isNotEmpty)
+            section('Call to prayer', day.callToPrayer),
+          if (day.encouragementToRead.isNotEmpty)
+            section('Encouragement to read', day.encouragementToRead),
+          if (day.reflection.isNotEmpty)
+            section(
+              day.reflectionTitle.isNotEmpty
+                  ? day.reflectionTitle
+                  : 'Reflection',
+              day.reflection,
             ),
-            pw.Text(_stripHtml(day.reflection)),
-          ],
+          if (day.questions.isNotEmpty)
+            section(
+              day.questionsTitle.isNotEmpty ? day.questionsTitle : 'Questions',
+              day.questions,
+            ),
+          if (day.finalWord.isNotEmpty) section('Final word', day.finalWord),
         ],
       ),
     );
     return doc;
-  }
-
-  String _stripHtml(String html) {
-    return html.replaceAll(RegExp(r'<[^>]*>'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 }

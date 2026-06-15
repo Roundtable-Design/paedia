@@ -39,6 +39,8 @@ class DayHeader extends StatelessWidget {
     final complete = isProgrammeComplete(startDate);
     final label = programmeDayLabel(startDate);
     final specialDay = specialDayLabel();
+    final offset = dayOffsetFromStart(startDate);
+    final preStart = offset != null && offset < 0;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: tokens.spacingSm),
@@ -49,8 +51,8 @@ class DayHeader extends StatelessWidget {
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium,
           ),
-          SizedBox(height: tokens.spacingSm),
-          if (label != null)
+          if (!preStart && label != null) ...[
+            SizedBox(height: tokens.spacingSm),
             Text(
               label,
               textAlign: TextAlign.center,
@@ -58,7 +60,8 @@ class DayHeader extends StatelessWidget {
                 color: complete ? tokens.programmeComplete : null,
               ),
             ),
-          if (!complete && dayNumber != null) ...[
+          ],
+          if (!preStart && !complete && dayNumber != null) ...[
             SizedBox(height: tokens.spacingSm),
             Text(
               'Day $dayNumber of 90',

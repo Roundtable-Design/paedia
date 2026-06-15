@@ -7,6 +7,15 @@ DateTime toLocalDateOnly(DateTime dateTime) {
   return DateTime(local.year, local.month, local.day);
 }
 
+/// Normalises a programme start date to the local calendar day (midnight local).
+DateTime normalizeProgrammeStartDate(DateTime date) => toLocalDateOnly(date);
+
+/// Whether the programme has not started yet (start is in the future).
+bool isProgrammePreStart(DateTime? startDate) {
+  final offset = dayOffsetFromStart(startDate);
+  return offset != null && offset < 0;
+}
+
 /// Calendar-day difference from [startDate] to today (local). Negative before start.
 int? dayOffsetFromStart(DateTime? startDate) {
   if (startDate == null) return null;

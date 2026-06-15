@@ -35,17 +35,41 @@ void main() {
 
   test('active when on programme day 30', () {
     final start = DateTime.now().subtract(const Duration(days: 29));
-    expect(programmeStatusFromProfile(profile(gender: 'Male', startDate: start)),
-        ProgrammeStatus.active);
-    expect(programmeDayNumber(start), 30);
+    final normalized = DateTime(start.year, start.month, start.day);
+    expect(
+      programmeStatusFromProfile(
+        profile(gender: 'Male', startDate: normalized),
+        startDate: normalized,
+      ),
+      ProgrammeStatus.active,
+    );
+    expect(programmeDayNumber(normalized), 30);
+  });
+
+  test('preStart when start date is in the future', () {
+    final future = DateTime.now().add(const Duration(days: 5));
+    final start = DateTime(future.year, future.month, future.day);
+    expect(
+      programmeStatusFromProfile(
+        profile(gender: 'Male', startDate: start),
+        startDate: start,
+      ),
+      ProgrammeStatus.preStart,
+    );
+    expect(isProgrammePreStart(start), isTrue);
+    expect(programmeDayNumber(start), isNull);
   });
 
   test('complete when past day 90', () {
     final start = DateTime.now().subtract(const Duration(days: 100));
+    final normalized = DateTime(start.year, start.month, start.day);
     expect(
-      programmeStatusFromProfile(profile(gender: 'Female', startDate: start)),
+      programmeStatusFromProfile(
+        profile(gender: 'Female', startDate: normalized),
+        startDate: normalized,
+      ),
       ProgrammeStatus.complete,
     );
-    expect(isProgrammeComplete(start), isTrue);
+    expect(isProgrammeComplete(normalized), isTrue);
   });
 }

@@ -5,6 +5,7 @@ import '/app_state.dart';
 import '/auth/firebase_auth/auth_util.dart';
 import '/backend/backend.dart';
 import '/core/analytics/app_analytics.dart';
+import '/core/domain/date_math.dart';
 import '/core/providers/repositories_provider.dart';
 import '/data/models/user_profile.dart';
 import '/features/reflections/reflections_providers.dart';
@@ -17,6 +18,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
   static const routeName = 'Onboarding';
   static const routePath = '/onboarding';
+
+  static const _totalSteps = 3;
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -47,8 +50,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         await ref.read(userRepositoryProvider).updateGender(_gender!);
       }
       if (_startDate != null) {
-        FFAppState().startDate = _startDate;
-        await ref.read(userRepositoryProvider).updateStartDate(_startDate!);
+        final normalized = normalizeProgrammeStartDate(_startDate!);
+        FFAppState().startDate = normalized;
+        await ref.read(userRepositoryProvider).updateStartDate(normalized);
+        ref.invalidate(programmeStartDateProvider);
+        ref.invalidate(todayDayProvider);
+        ref.invalidate(pastDaysProvider);
       }
       if (_whyController.text.trim().isNotEmpty) {
         await currentUserReference?.update(
@@ -82,9 +89,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
 
     final theme = Theme.of(context);
+    final progress = (_step + 1) / OnboardingScreen._totalSteps;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Welcome to Paedia')),
+      appBar: AppBar(
+        title: const Text('Welcome to Paedia'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(28),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Step ${_step + 1} of ${OnboardingScreen._totalSteps}',
+                  style: theme.textTheme.labelMedium,
+                ),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(value: progress),
+              ],
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: Stepper(
           currentStep: _step,
@@ -111,7 +138,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           controlsBuilder: (context, details) {
             return Padding(
               padding: const EdgeInsets.only(top: 16),
-              child: Row(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   FilledButton(
                     onPressed: _saving ? null : details.onStepContinue,
@@ -123,13 +153,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           )
                         : Text(_step == 2 ? 'Finish' : 'Continue'),
                   ),
-                  if (details.onStepCancel != null) ...[
-                    const SizedBox(width: 12),
+                  if (details.onStepCancel != null)
                     TextButton(
                       onPressed: details.onStepCancel,
                       child: const Text('Back'),
                     ),
-                  ],
+                  if (_step == 2)
+                    TextButton(
+                      onPressed: _saving ? null : _finish,
+                      child: const Text('Skip for now'),
+                    ),
                 ],
               ),
             );
@@ -148,6 +181,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                   const SizedBox(height: 12),
                   SegmentedButton<String>(
+                    emptySelectionAllowed: true,
                     segments: const [
                       ButtonSegment(value: 'male', label: Text('Male')),
                       ButtonSegment(value: 'female', label: Text('Female')),

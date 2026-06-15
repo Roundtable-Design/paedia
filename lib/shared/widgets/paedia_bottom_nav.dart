@@ -18,29 +18,47 @@ class PaediaBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final borderColor = theme.dividerColor;
 
-    return Semantics(
-      container: true,
-      label: 'Main navigation',
-      child: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: onTap,
-        backgroundColor: theme.colorScheme.surface,
-        selectedItemColor: theme.colorScheme.primary,
-        unselectedItemColor: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        type: BottomNavigationBarType.fixed,
-        items: List.generate(labels.length, (index) {
-          return BottomNavigationBarItem(
-            icon: Semantics(
-              excludeSemantics: true,
-              child: Icon(_iconForIndex(index)),
-            ),
-            label: labels[index],
-            tooltip: labels[index],
-          );
-        }),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(top: BorderSide(color: borderColor)),
+      ),
+      child: Semantics(
+        container: true,
+        label: 'Main navigation',
+        child: BottomNavigationBar(
+          currentIndex: currentIndex,
+          onTap: onTap,
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          selectedItemColor: theme.colorScheme.primary,
+          unselectedItemColor:
+              theme.colorScheme.onSurface.withValues(alpha: 0.55),
+          showSelectedLabels: true,
+          showUnselectedLabels: true,
+          type: BottomNavigationBarType.fixed,
+          selectedFontSize: 12,
+          unselectedFontSize: 12,
+          iconSize: 24,
+          enableFeedback: false,
+          items: List.generate(labels.length, (index) {
+            final selected = index == currentIndex;
+            return BottomNavigationBarItem(
+              icon: Semantics(
+                selected: selected,
+                label: labels[index],
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 2),
+                  child: Icon(_iconForIndex(index), size: 24),
+                ),
+              ),
+              label: labels[index],
+              tooltip: labels[index],
+            );
+          }),
+        ),
       ),
     );
   }
@@ -48,15 +66,15 @@ class PaediaBottomNav extends StatelessWidget {
   IconData _iconForIndex(int index) {
     switch (index) {
       case 0:
-        return Icons.groups_rounded;
+        return Icons.groups_outlined;
       case 1:
         return Icons.today_outlined;
       case 2:
-        return Icons.class_;
+        return Icons.menu_book_outlined;
       case 3:
-        return Icons.manage_accounts_sharp;
+        return Icons.person_outline;
       default:
-        return Icons.circle;
+        return Icons.circle_outlined;
     }
   }
 }
