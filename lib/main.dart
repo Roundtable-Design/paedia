@@ -1,18 +1,19 @@
 import 'package:provider/provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' hide ChangeNotifierProvider;
+import 'package:flutter_riverpod/flutter_riverpod.dart'
+    hide ChangeNotifierProvider;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-
+import 'package:firebase_core/firebase_core.dart';
 import 'auth/firebase_auth/firebase_user_provider.dart';
 import 'auth/firebase_auth/auth_util.dart';
+
+import 'package:flutter/foundation.dart';
+
 import '/backend/firebase/firebase_config.dart';
 import '/core/firebase/app_services.dart';
-import '/core/monitoring/app_monitoring.dart';
-import '/core/analytics/app_analytics.dart';
-import '/core/services/content_prefetch_service.dart';
 import '/core/services/days_cache_holder.dart';
 import '/data/local/sqflite_days_cache.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
@@ -20,41 +21,30 @@ import 'flutter_flow/flutter_flow_util.dart';
 import 'flutter_flow/nav/nav.dart';
 import '/shared/theme/paedia_theme.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   GoRouter.optionURLReflectsImperativeAPIs = true;
   usePathUrlStrategy();
 
   await initFirebase();
-  await initFirebaseServices();
-  await AppAnalytics.initialize();
-
-  await runAppWithMonitoring(_bootstrapAndRun);
-}
-
-Future<void> _bootstrapAndRun() async {
-  if (!kIsWeb) {
-    DaysCacheHolder.instance = await SqfliteDaysCache.open();
-  }
 
   await FlutterFlowTheme.initialize();
 
-  final appState = FFAppState();
+  final appState = FFAppState(); // Initialize FFAppState
   await appState.initializePersistedState();
 
   runApp(
     ProviderScope(
       child: ChangeNotifierProvider(
         create: (context) => appState,
-        child: const MyApp(),
+        child: MyApp(),
       ),
     ),
   );
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
-
+  // This widget is the root of your application.
   @override
   State<MyApp> createState() => _MyAppState();
 
@@ -76,8 +66,6 @@ class _MyAppState extends State<MyApp> {
 
   late AppStateNotifier _appStateNotifier;
   late GoRouter _router;
-  late Stream<BaseAuthUser> userStream;
-
   String getRoute([RouteMatch? routeMatch]) {
     final RouteMatch lastMatch =
         routeMatch ?? _router.routerDelegate.currentConfiguration.last;
@@ -91,9 +79,9 @@ class _MyAppState extends State<MyApp> {
       _router.routerDelegate.currentConfiguration.matches
           .map((e) => getRoute(e))
           .toList();
+  late Stream<BaseAuthUser> userStream;
 
   final authUserSub = authenticatedUserStream.listen((_) {});
-  final prefetchService = ContentPrefetchService();
 
   @override
   void initState() {
@@ -104,18 +92,10 @@ class _MyAppState extends State<MyApp> {
     userStream = paediaFirebaseUserStream()
       ..listen((user) {
         _appStateNotifier.update(user);
-        if (user.loggedIn) {
-          prefetchService.prefetchForCurrentUser();
-          setMonitoringUser(userId: user.uid);
-          AppAnalytics.setUserId(user.uid);
-        } else {
-          setMonitoringUser(userId: null);
-          AppAnalytics.setUserId(null);
-        }
       });
     jwtTokenStream.listen((_) {});
     Future.delayed(
-      const Duration(milliseconds: 300),
+      Duration(milliseconds: 1000),
       () => _appStateNotifier.stopShowingSplashImage(),
     );
   }
@@ -123,6 +103,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     authUserSub.cancel();
+
     super.dispose();
   }
 
@@ -137,7 +118,7 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       title: 'Paedia',
       scrollBehavior: MyAppScrollBehavior(),
-      localizationsDelegates: const [
+      localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,

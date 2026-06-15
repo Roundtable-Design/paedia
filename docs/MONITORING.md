@@ -85,7 +85,41 @@ View in Firebase Console → Analytics → DebugView (enable debug mode on devic
 ### Alerts
 
 - Sentry: email alert on **new issue** or **regression** after deploy.
+- **Linear (recommended):** auto-create Linear issues from Sentry alerts (see below).
 - Firebase: enable Analytics data export to BigQuery only when you need SQL (paid GCP).
+
+## Sentry → Linear (auto-create issues)
+
+Sentry posts to Linear via Sentry’s **Linear integration** (OAuth in Sentry), not via the Linear MCP in Cursor. The MCP is for managing Linear from the IDE; the integration runs inside Sentry when alerts fire.
+
+### 1. Connect Linear in Sentry (one-time, org admin)
+
+1. Open [roundtable-studio.sentry.io/settings/integrations/linear/](https://roundtable-studio.sentry.io/settings/integrations/linear/)
+2. Click **Install** / **Accept & Install** and authorize your Linear workspace.
+3. In Linear: **Settings → Integrations → Sentry** — confirm it shows as enabled.
+
+Use a **public** Linear team (private teams are not supported).
+
+### 2. Alert rule — create a Linear issue on new errors
+
+1. Sentry → **Alerts** → **Create Alert** → **Issues** (or edit an existing rule).
+2. Set conditions, e.g.:
+   - **A new issue is created**, or
+   - **The issue level is equal to** `error` / `fatal`
+3. Under **Actions**, add **Notify Integration → Linear** (or **Linear** from the action dropdown).
+4. Choose the **Linear team** and defaults (priority, labels such as `bug` / `sentry`).
+5. Save the alert.
+
+Each matching Sentry issue will create a linked Linear issue. Completing the Linear issue can auto-resolve the Sentry issue (bi-directional sync).
+
+### 3. Manual linking (optional)
+
+On any Sentry issue → right sidebar **Linked Issues** → **Create Linear issue** or **Link Linear issue**.
+
+### Cursor MCP note
+
+- **Sentry MCP** — query issues/events from Cursor once authenticated in Settings → MCP.
+- **Linear MCP** — manage Linear issues from Cursor; does **not** replace the Sentry dashboard integration above. If Linear MCP shows an error in Cursor, re-authenticate under **Settings → MCP → Linear**.
 
 ### Security & privacy
 

@@ -23,7 +23,8 @@ Future<void> runAppWithMonitoring(Future<void> Function() appRunner) async {
     (options) {
       options.dsn = kSentryDsn;
       options.environment = kDebugMode ? 'development' : 'production';
-      options.release = 'paedia@${packageInfo.version}+${packageInfo.buildNumber}';
+      options.release =
+          'paedia@${packageInfo.version}+${packageInfo.buildNumber}';
       options.dist = packageInfo.buildNumber;
       options.sendDefaultPii = false;
       options.enableAutoSessionTracking = true;

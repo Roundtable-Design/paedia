@@ -1,16 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '/backend/backend.dart';
 import '/core/domain/date_math.dart';
-import '/data/local/offline_cache.dart';
+import '/core/services/days_cache_holder.dart';
 import '/data/models/day.dart';
 
-/// Repository for programme day content from Firestore with optional local cache.
+/// Repository for programme day content from Firestore.
 class DaysRepository {
-  DaysRepository({OfflineDaysCache? cache}) : _cache = cache;
-
-  final OfflineDaysCache? _cache;
-
   Stream<List<DaysRecord>> watchDays({
     Query Function(Query)? queryBuilder,
     int limit = -1,
@@ -27,13 +21,7 @@ class DaysRepository {
     return watchDays(
       queryBuilder: (q) => q.where('DayNumber', isEqualTo: dayNumber),
       singleRecord: true,
-    ).asyncMap((records) async {
-      final domain = toDomain(records.isEmpty ? null : records.first);
-      if (domain != null) {
-        await _cache?.putDay(domain);
-      }
-      return domain ?? await _cache?.getDay(dayNumber);
-    });
+    ).map((records) => toDomain(records.isEmpty ? null : records.first));
   }
 
   Stream<Day?> watchToday(DateTime? startDate) {
@@ -56,18 +44,6 @@ class DaysRepository {
     ).map(toDomainList);
   }
 
-  Future<Day?> getDayCachedFirst(int dayNumber) async {
-    final cached = await _cache?.getDay(dayNumber);
-    if (cached != null) return cached;
-    final records = await getDaysOnce(
-      queryBuilder: (q) => q.where('DayNumber', isEqualTo: dayNumber),
-      singleRecord: true,
-    );
-    final domain = toDomain(records.isEmpty ? null : records.first);
-    if (domain != null) await _cache?.putDay(domain);
-    return domain;
-  }
-
   Future<List<DaysRecord>> getDaysOnce({
     Query Function(Query)? queryBuilder,
     int limit = -1,
@@ -87,5 +63,24 @@ class DaysRepository {
 
   List<Day> toDomainList(List<DaysRecord> records) {
     return records.map(Day.fromRecord).toList(growable: false);
+  }
+
+  /// Fetches a day from cache when available, otherwise Firestore, then caches.
+  Future<Day?> getDayCachedFirst(int dayNumber) async {
+    final cache = DaysCacheHolder.instance;
+    if (cache != null) {
+      final cached = await cache.getDay(dayNumber);
+      if (cached != null) return cached;
+    }
+
+    final records = await getDaysOnce(
+      queryBuilder: (q) => q.where('DayNumber', isEqualTo: dayNumber),
+      singleRecord: true,
+    );
+    final day = toDomain(records.isEmpty ? null : records.first);
+    if (day != null && cache != null) {
+      await cache.putDay(day);
+    }
+    return day;
   }
 }

@@ -25,4 +25,17 @@ class GroupsRepository {
       queryBuilder: (q) => q.whereIn('uid', memberIds),
     );
   }
+
+  Future<void> updateKeyDates({
+    required DocumentReference groupRef,
+    required List<GroupKeyDate> keyDates,
+  }) async {
+    await groupRef.update({
+      'keyDates': keyDates.map((d) => d.toMap()).toList(),
+    });
+  }
+
+  Future<void> deleteGroup(DocumentReference groupRef) async {
+    await groupRef.delete();
+  }
 }

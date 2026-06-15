@@ -10,11 +10,10 @@ import '/backend/backend.dart';
 import '/auth/base_auth_user_provider.dart';
 
 import '/main.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/lat_lng.dart';
 import '/flutter_flow/place.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import 'serialization_util.dart';
+import '/shared/theme/paedia_colors.dart';
 
 import '/auth/firebase_auth/auth_util.dart';
 
@@ -136,8 +135,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) {
           return postLoginRoute();
         }
 
-        if (appStateNotifier.loggedIn &&
-            path == OnboardingScreen.routePath) {
+        if (appStateNotifier.loggedIn && path == OnboardingScreen.routePath) {
           final doc = currentUserDocument;
           if (doc != null && doc.hasGender() && doc.hasStartDate()) {
             return '/today';
@@ -146,10 +144,9 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) {
 
         return null;
       },
-      errorBuilder: (context, state) =>
-          appStateNotifier.loggedIn
-              ? const ReflectionsScreen()
-              : const LoginScreen(),
+      errorBuilder: (context, state) => appStateNotifier.loggedIn
+          ? const ReflectionsScreen()
+          : const LoginScreen(),
       routes: [
         GoRoute(
           path: '/',
@@ -447,13 +444,15 @@ class FFRoute {
                 )
               : builder(context, ffParams);
           final child = appStateNotifier.loading
-              ? Container(
-                  color: FlutterFlowTheme.of(context).secondaryBackground,
+              ? ColoredBox(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? PaediaColors.surfaceDark
+                      : PaediaColors.surfaceLight,
                   child: Center(
                     child: Image.asset(
                       'assets/images/Paedia_-_leaf_Sage_green.png',
-                      width: 100.0,
-                      height: 100.0,
+                      width: 56.0,
+                      height: 56.0,
                       fit: BoxFit.contain,
                     ),
                   ),

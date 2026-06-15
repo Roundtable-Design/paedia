@@ -64,7 +64,24 @@ const ACCOUNTS = [
     startDate: daysAgo(100),
     whyStatement: 'Testing post-programme completion.',
   },
+  {
+    email: 'dev+paedia-group@round-table.co.uk',
+    displayName: 'Dev Group User',
+    gender: 'Male',
+    startDate: daysAgo(4),
+    whyStatement: 'Testing community group membership.',
+  },
 ];
+
+const GROUP_ID = 'dev-test-group';
+const GROUP_NAME = 'Dev Test Group';
+
+function futureDate(daysFromNow) {
+  const d = new Date();
+  d.setHours(18, 0, 0, 0);
+  d.setDate(d.getDate() + daysFromNow);
+  return d.toISOString();
+}
 
 async function authRequest(path, body) {
   const res = await fetch(
@@ -158,9 +175,77 @@ async function patchUserDoc(idToken, uid, profile) {
   }
 }
 
+async function patchGroupDoc(idToken, memberUids) {
+  const fields = {
+    groupName: { stringValue: GROUP_NAME },
+    usersIDs: {
+      arrayValue: {
+        values: memberUids.map((uid) => ({ stringValue: uid })),
+      },
+    },
+    keyDates: {
+      arrayValue: {
+        values: [
+          {
+            mapValue: {
+              fields: {
+                label: { stringValue: 'Group meetup' },
+                date: { timestampValue: futureDate(14) },
+              },
+            },
+          },
+          {
+            mapValue: {
+              fields: {
+                label: { stringValue: 'Exit statement night' },
+                date: { timestampValue: futureDate(75) },
+              },
+            },
+          },
+        ],
+      },
+    },
+  };
+
+  const maskPaths = ['groupName', 'usersIDs', 'keyDates'];
+  const patchUrl =
+    `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}` +
+    `/databases/(default)/documents/groups/${GROUP_ID}?` +
+    maskPaths.map((p) => `updateMask.fieldPaths=${p}`).join('&');
+
+  const res = await fetch(patchUrl, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ fields }),
+  });
+
+  if (!res.ok) {
+    const createUrl =
+      `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}` +
+      `/databases/(default)/documents/groups?documentId=${GROUP_ID}`;
+    const createRes = await fetch(createUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ fields }),
+    });
+    if (!createRes.ok) {
+      const err = await createRes.json();
+      throw new Error(err.error?.message ?? createRes.statusText);
+    }
+  }
+}
+
 async function main() {
   const password = loadPassword();
   console.log(`Seeding ${ACCOUNTS.length} test accounts on ${PROJECT_ID}…\n`);
+
+  const uidsByEmail = {};
 
   for (const account of ACCOUNTS) {
     process.stdout.write(`${account.email} … `);
@@ -169,7 +254,27 @@ async function main() {
       password,
     );
     await patchUserDoc(idToken, localId, account);
+    uidsByEmail[account.email] = localId;
     console.log(created ? 'created' : 'updated');
+  }
+
+  const groupMemberEmails = [
+    'dev+paedia-group@round-table.co.uk',
+    'dev+paedia-onboard@round-table.co.uk',
+    'dev+paedia-active@round-table.co.uk',
+  ];
+  const memberUids = groupMemberEmails
+    .map((email) => uidsByEmail[email])
+    .filter(Boolean);
+
+  if (memberUids.length > 0) {
+    process.stdout.write(`\nSeeding group ${GROUP_ID} … `);
+    const { idToken } = await getIdToken(
+      'dev+paedia-group@round-table.co.uk',
+      password,
+    );
+    await patchGroupDoc(idToken, memberUids);
+    console.log('done');
   }
 
   console.log('\nDone. Credentials are in .env.test.local (not committed).');

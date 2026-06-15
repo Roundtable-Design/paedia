@@ -30,22 +30,17 @@ class ManualHubScreen extends ConsumerWidget {
           ),
           data: (profile) {
             final hasGender = profile?.gender.isNotEmpty == true;
-            final genderLabel =
-                hasGender ? profile!.gender : 'not set';
 
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 Text('Manuals', style: theme.textTheme.headlineSmall),
-                const SizedBox(height: 8),
-                Text(
-                  hasGender
-                      ? 'Showing content for $genderLabel.'
-                      : 'Set your gender in Profile to view manual content.',
-                  style: theme.textTheme.bodyMedium,
-                ),
                 if (!hasGender) ...[
                   const SizedBox(height: 8),
+                  Text(
+                    'Set your gender in Profile to view manual content.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
                   FilledButton.tonal(
                     onPressed: () => context.go('/profile'),
                     child: const Text('Set gender in Profile'),

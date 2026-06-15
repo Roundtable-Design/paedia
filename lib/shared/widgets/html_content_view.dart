@@ -29,35 +29,61 @@ class HtmlContentView extends StatelessWidget {
       '',
     );
 
-    return HtmlWidget(
-      cleaned,
-      textStyle: baseStyle,
-      factoryBuilder: () => _PaediaWidgetFactory(),
-      customStylesBuilder: (element) {
-        switch (element.localName) {
-          case 'h1':
-          case 'h2':
-          case 'h3':
-            return {
-              'font-family': 'Inter Tight',
-              'font-weight': '600',
-              'margin-bottom': '8px',
-            };
-          case 'blockquote':
-            return {
-              'border-left': '3px solid #3D9970',
-              'padding-left': '12px',
-              'font-style': 'italic',
-            };
-          case 'a':
-            return {
-              'color': '#3D9970',
-              'text-decoration': 'underline',
-            };
-          default:
-            return null;
-        }
-      },
+    return SelectionArea(
+      child: HtmlWidget(
+        cleaned,
+        textStyle: baseStyle,
+        factoryBuilder: () => _PaediaWidgetFactory(),
+        customStylesBuilder: (element) {
+          switch (element.localName) {
+            case 'h1':
+              return {
+                'font-family': 'Inter Tight',
+                'font-weight': '700',
+                'font-size': '22px',
+                'line-height': '1.35',
+                'margin-top': '20px',
+                'margin-bottom': '10px',
+              };
+            case 'h2':
+              return {
+                'font-family': 'Inter Tight',
+                'font-weight': '700',
+                'font-size': '19px',
+                'line-height': '1.35',
+                'margin-top': '18px',
+                'margin-bottom': '8px',
+              };
+            case 'h3':
+              return {
+                'font-family': 'Inter Tight',
+                'font-weight': '600',
+                'font-size': '17px',
+                'line-height': '1.4',
+                'margin-top': '14px',
+                'margin-bottom': '6px',
+              };
+            case 'strong':
+            case 'b':
+              return {
+                'font-weight': '600',
+              };
+            case 'blockquote':
+              return {
+                'border-left': '3px solid #3D9970',
+                'padding-left': '12px',
+                'font-style': 'italic',
+              };
+            case 'a':
+              return {
+                'color': '#3D9970',
+                'text-decoration': 'underline',
+              };
+            default:
+              return null;
+          }
+        },
+      ),
     );
   }
 }

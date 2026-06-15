@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '/auth/firebase_auth/auth_util.dart';
 import '/core/analytics/app_analytics.dart';
@@ -22,6 +23,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
+  static const _authTabKey = 'paedia_auth_tab_index';
+
   late TabController _tabs;
   final _signInFormKey = GlobalKey<FormState>();
   final _signUpFormKey = GlobalKey<FormState>();
@@ -37,10 +40,28 @@ class _LoginScreenState extends State<LoginScreen>
   void initState() {
     super.initState();
     _tabs = TabController(length: 2, vsync: this);
+    _tabs.addListener(_persistAuthTab);
+    _restoreAuthTab();
+  }
+
+  Future<void> _restoreAuthTab() async {
+    final prefs = await SharedPreferences.getInstance();
+    final index = prefs.getInt(_authTabKey) ?? 0;
+    if (mounted && index != _tabs.index) {
+      _tabs.index = index.clamp(0, 1);
+    }
+  }
+
+  void _persistAuthTab() {
+    if (_tabs.indexIsChanging) return;
+    SharedPreferences.getInstance().then(
+      (prefs) => prefs.setInt(_authTabKey, _tabs.index),
+    );
   }
 
   @override
   void dispose() {
+    _tabs.removeListener(_persistAuthTab);
     _tabs.dispose();
     _signInEmail.dispose();
     _signInPassword.dispose();
@@ -60,7 +81,8 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  Future<void> _afterAuth({required String method, required bool isSignUp}) async {
+  Future<void> _afterAuth(
+      {required String method, required bool isSignUp}) async {
     if (!mounted) return;
     if (isSignUp) {
       await AppAnalytics.logSignUp(method: method);
@@ -73,131 +95,136 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final cardHeight = (screenHeight - 220).clamp(420.0, 620.0);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 24),
-              Image.asset(
-                'assets/images/Paedia_-_leaf_Sage_green.png',
-                width: 50,
-                height: 50,
-              ),
-              const SizedBox(height: 8),
-              Text('Paedia', style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: SizedBox(
-                  height: cardHeight,
-                  child: Card(
-                    child: Column(
-                      children: [
-                        TabBar(
-                          controller: _tabs,
-                          tabs: const [
-                            Tab(text: 'Log In'),
-                            Tab(text: 'Create Account'),
-                          ],
-                        ),
-                        Expanded(
-                          child: TabBarView(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                children: [
+                  Image.asset(
+                    'assets/images/Paedia_-_leaf_Sage_green.png',
+                    width: 50,
+                    height: 50,
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Paedia', style: theme.textTheme.headlineSmall),
+                  const SizedBox(height: 24),
+                  Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: SizedBox(
+                      height: 520,
+                      child: Column(
+                        children: [
+                          TabBar(
                             controller: _tabs,
-                            children: [
-                              _SignInForm(
-                                formKey: _signInFormKey,
-                                email: _signInEmail,
-                                password: _signInPassword,
-                                obscure: _obscureSignIn,
-                                busy: _busy,
-                                onToggleObscure: () => setState(
-                                  () => _obscureSignIn = !_obscureSignIn,
-                                ),
-                                onSignIn: () {
-                                  if (!_signInFormKey.currentState!.validate()) {
-                                    return;
-                                  }
-                                  _runAuth(() async {
-                                    final user =
-                                        await authManager.signInWithEmail(
-                                      context,
-                                      _signInEmail.text.trim(),
-                                      _signInPassword.text,
-                                    );
-                                    if (user == null) return;
-                                    await _afterAuth(method: 'email', isSignUp: false);
-                                  });
-                                },
-                                onGoogle: () => _runAuth(() async {
-                                  final user =
-                                      await authManager.signInWithGoogle(
-                                          context);
-                                  if (user == null) return;
-                                  await _afterAuth(method: 'google', isSignUp: false);
-                                }),
-                                onApple: () => _runAuth(() async {
-                                  final user =
-                                      await authManager.signInWithApple(
-                                          context);
-                                  if (user == null) return;
-                                  await _afterAuth(method: 'apple', isSignUp: false);
-                                }),
-                                onForgot: () => context
-                                    .pushNamed(ForgotPasswordWidget.routeName),
-                              ),
-                              _SignUpForm(
-                                formKey: _signUpFormKey,
-                                email: _signUpEmail,
-                                password: _signUpPassword,
-                                obscure: _obscureSignUp,
-                                busy: _busy,
-                                onToggleObscure: () => setState(
-                                  () => _obscureSignUp = !_obscureSignUp,
-                                ),
-                                onSignUp: () {
-                                  if (!_signUpFormKey.currentState!.validate()) {
-                                    return;
-                                  }
-                                  _runAuth(() async {
-                                    final user =
-                                        await authManager.createAccountWithEmail(
-                                      context,
-                                      _signUpEmail.text.trim(),
-                                      _signUpPassword.text,
-                                    );
-                                    if (user == null) return;
-                                    await _afterAuth(method: 'email', isSignUp: true);
-                                  });
-                                },
-                                onGoogle: () => _runAuth(() async {
-                                  final user =
-                                      await authManager.signInWithGoogle(
-                                          context);
-                                  if (user == null) return;
-                                  await _afterAuth(method: 'google', isSignUp: true);
-                                }),
-                                onApple: () => _runAuth(() async {
-                                  final user =
-                                      await authManager.signInWithApple(
-                                          context);
-                                  if (user == null) return;
-                                  await _afterAuth(method: 'apple', isSignUp: true);
-                                }),
-                              ),
+                            tabs: const [
+                              Tab(text: 'Log In'),
+                              Tab(text: 'Create Account'),
                             ],
                           ),
-                        ),
-                      ],
+                          Expanded(
+                            child: TabBarView(
+                              controller: _tabs,
+                              children: [
+                                _SignInForm(
+                                  formKey: _signInFormKey,
+                                  email: _signInEmail,
+                                  password: _signInPassword,
+                                  obscure: _obscureSignIn,
+                                  busy: _busy,
+                                  onToggleObscure: () => setState(
+                                    () => _obscureSignIn = !_obscureSignIn,
+                                  ),
+                                  onSignIn: () {
+                                    if (!_signInFormKey.currentState!
+                                        .validate()) {
+                                      return;
+                                    }
+                                    _runAuth(() async {
+                                      final user =
+                                          await authManager.signInWithEmail(
+                                        context,
+                                        _signInEmail.text.trim(),
+                                        _signInPassword.text,
+                                      );
+                                      if (user == null) return;
+                                      await _afterAuth(
+                                          method: 'email', isSignUp: false);
+                                    });
+                                  },
+                                  onGoogle: () => _runAuth(() async {
+                                    final user = await authManager
+                                        .signInWithGoogle(context);
+                                    if (user == null) return;
+                                    await _afterAuth(
+                                        method: 'google', isSignUp: false);
+                                  }),
+                                  onApple: () => _runAuth(() async {
+                                    final user = await authManager
+                                        .signInWithApple(context);
+                                    if (user == null) return;
+                                    await _afterAuth(
+                                        method: 'apple', isSignUp: false);
+                                  }),
+                                  onForgot: () => context.pushNamed(
+                                      ForgotPasswordWidget.routeName),
+                                ),
+                                _SignUpForm(
+                                  formKey: _signUpFormKey,
+                                  email: _signUpEmail,
+                                  password: _signUpPassword,
+                                  obscure: _obscureSignUp,
+                                  busy: _busy,
+                                  onToggleObscure: () => setState(
+                                    () => _obscureSignUp = !_obscureSignUp,
+                                  ),
+                                  onSignUp: () {
+                                    if (!_signUpFormKey.currentState!
+                                        .validate()) {
+                                      return;
+                                    }
+                                    _runAuth(() async {
+                                      final user = await authManager
+                                          .createAccountWithEmail(
+                                        context,
+                                        _signUpEmail.text.trim(),
+                                        _signUpPassword.text,
+                                      );
+                                      if (user == null) return;
+                                      await _afterAuth(
+                                          method: 'email', isSignUp: true);
+                                    });
+                                  },
+                                  onGoogle: () => _runAuth(() async {
+                                    final user = await authManager
+                                        .signInWithGoogle(context);
+                                    if (user == null) return;
+                                    await _afterAuth(
+                                        method: 'google', isSignUp: true);
+                                  }),
+                                  onApple: () => _runAuth(() async {
+                                    final user = await authManager
+                                        .signInWithApple(context);
+                                    if (user == null) return;
+                                    await _afterAuth(
+                                        method: 'apple', isSignUp: true);
+                                  }),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -362,7 +389,8 @@ class _SignInForm extends StatelessWidget {
           ),
           Align(
             alignment: Alignment.centerRight,
-            child: TextButton(onPressed: onForgot, child: const Text('Forgot?')),
+            child:
+                TextButton(onPressed: onForgot, child: const Text('Forgot?')),
           ),
           const SizedBox(height: 8),
           FilledButton(

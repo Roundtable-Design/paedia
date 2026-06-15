@@ -5,31 +5,43 @@ import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 import '/core/pdf/day_pdf_builder.dart';
 
+import '/core/features/experimental_features.dart';
 import '/core/analytics/app_analytics.dart';
 import '/core/domain/date_math.dart';
+import '/core/providers/connectivity_provider.dart';
 import '/data/models/day.dart';
 import '/features/reflections/reflections_providers.dart';
 import '/shared/utils/user_error_message.dart';
+import '/shared/widgets/cached_content_banner.dart';
+import '/shared/widgets/content_skeleton.dart';
 import '/shared/widgets/day_header.dart';
 import '/shared/widgets/empty_state.dart';
 import '/shared/widgets/expandable_panel_theme.dart';
+import '/shared/widgets/day_illustration.dart';
 import '/shared/widgets/html_content_view.dart';
 import '/shared/widgets/loading_indicator.dart';
 
 class ReflectionsScreen extends ConsumerWidget {
   const ReflectionsScreen({super.key});
 
+  Future<void> _refresh(WidgetRef ref) async {
+    ref.invalidate(userProfileProvider);
+    ref.invalidate(programmeStartDateProvider);
+    ref.invalidate(todayDayProvider);
+    ref.invalidate(pastDaysProvider);
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(userProfileProvider);
-    final status = ref.watch(programmeStatusProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: profileAsync.when(
-          loading: () => const Center(child: LoadingIndicator()),
+          loading: () => ContentSkeleton.header(),
           error: (e, _) => EmptyState(
             title: 'Unable to load profile',
             message: userFriendlyError(e),
@@ -37,15 +49,27 @@ class ReflectionsScreen extends ConsumerWidget {
             onAction: () => ref.invalidate(userProfileProvider),
           ),
           data: (profile) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  DayHeader(startDate: profile?.startDate),
-                  const SizedBox(height: 16),
-                  _StatusBody(status: status, profile: profile),
-                ],
+            final startDate = ref.watch(programmeStartDateProvider);
+            final status = programmeStatusFromProfile(
+              profile,
+              startDate: startDate,
+            );
+
+            return RefreshIndicator(
+              onRefresh: () => _refresh(ref),
+              child: SelectionArea(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DayHeader(startDate: startDate),
+                      const SizedBox(height: 16),
+                      _StatusBody(status: status, startDate: startDate),
+                    ],
+                  ),
+                ),
               ),
             );
           },
@@ -58,14 +82,18 @@ class ReflectionsScreen extends ConsumerWidget {
 class _StatusBody extends ConsumerWidget {
   const _StatusBody({
     required this.status,
-    required this.profile,
+    required this.startDate,
   });
 
   final ProgrammeStatus status;
-  final dynamic profile;
+  final DateTime? startDate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (isProgrammePreStart(startDate)) {
+      return _PreStartCard(startDate: startDate);
+    }
+
     switch (status) {
       case ProgrammeStatus.needsGender:
         return EmptyState(
@@ -78,24 +106,19 @@ class _StatusBody extends ConsumerWidget {
       case ProgrammeStatus.needsStartDate:
         return EmptyState(
           title: 'Set your start date',
-          message:
-              'Choose when your 90-day programme begins in Profile.',
+          message: 'Choose when your 90-day programme begins in Profile.',
           actionLabel: 'Go to Profile',
           onAction: () => context.go('/profile'),
         );
       case ProgrammeStatus.preStart:
-        final label = programmeDayLabel(profile?.startDate);
-        return EmptyState(
-          title: 'Programme not started yet',
-          message: label ?? 'Your programme has not started.',
-        );
+        return _PreStartCard(startDate: startDate);
       case ProgrammeStatus.complete:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             EmptyState(
               title: 'Programme complete',
-              message: programmeDayLabel(profile?.startDate) ??
+              message: programmeDayLabel(startDate) ??
                   'Congratulations on completing Paedia.',
             ),
             const SizedBox(height: 24),
@@ -103,12 +126,12 @@ class _StatusBody extends ConsumerWidget {
           ],
         );
       case ProgrammeStatus.active:
-        return const Column(
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _TodaySection(),
-            SizedBox(height: 24),
-            _PastDaysSection(),
+            if (!isProgrammePreStart(startDate)) const _TodaySection(),
+            if (!isProgrammePreStart(startDate)) const SizedBox(height: 24),
+            const _PastDaysSection(),
           ],
         );
       case ProgrammeStatus.unavailable:
@@ -120,16 +143,61 @@ class _StatusBody extends ConsumerWidget {
   }
 }
 
+class _PreStartCard extends StatelessWidget {
+  const _PreStartCard({required this.startDate});
+
+  final DateTime? startDate;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final daysUntil = startDate == null ? null : dayOffsetFromStart(startDate);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Icon(Icons.hourglass_top_outlined,
+                size: 40, color: theme.colorScheme.primary),
+            const SizedBox(height: 12),
+            Text(
+              daysUntil != null && daysUntil < 0 ? '${-daysUntil}' : '—',
+              style: theme.textTheme.displaySmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              daysUntil != null && daysUntil < 0
+                  ? 'day${-daysUntil == 1 ? '' : 's'} until Paedia begins'
+                  : 'Programme not started yet',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TodaySection extends ConsumerWidget {
   const _TodaySection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final startDate = ref.watch(programmeStartDateProvider);
+    if (isProgrammePreStart(startDate)) {
+      return const SizedBox.shrink();
+    }
+
     final dayAsync = ref.watch(todayDayProvider);
+    final isOffline = ref.watch(isOfflineProvider);
     final theme = Theme.of(context);
 
     return dayAsync.when(
-      loading: () => const Center(child: LoadingIndicator()),
+      loading: () => ContentSkeleton.card(height: 200),
       error: (e, _) => EmptyState(
         title: 'Unable to load today',
         message: userFriendlyError(e),
@@ -143,7 +211,13 @@ class _TodaySection extends ConsumerWidget {
             message: 'Check back later or contact your programme leader.',
           );
         }
-        return _DayCard(day: day, theme: theme);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (isOffline) const CachedContentBanner(),
+            _DayCard(day: day, theme: theme),
+          ],
+        );
       },
     );
   }
@@ -158,22 +232,15 @@ class _PastDaysSection extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return pastAsync.when(
-      loading: () => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: LoadingIndicator(size: 20),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Loading previous days…',
-              style: theme.textTheme.bodyMedium,
-            ),
-          ],
-        ),
+      loading: () => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Previous days', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          ContentSkeleton.card(height: 56),
+          const SizedBox(height: 8),
+          ContentSkeleton.card(height: 56),
+        ],
       ),
       error: (e, _) => EmptyState(
         title: 'Unable to load previous days',
@@ -182,13 +249,19 @@ class _PastDaysSection extends ConsumerWidget {
         onAction: () => ref.invalidate(pastDaysProvider),
       ),
       data: (days) {
-        if (days.isEmpty) return const SizedBox.shrink();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Previous days', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
-            ...days.map((day) => _DayAccordion(day: day)),
+            if (days.isEmpty)
+              const EmptyState(
+                title: 'No previous days yet',
+                message:
+                    'Past reflections will appear here as you progress through the programme.',
+              )
+            else
+              ...days.map((day) => _DayAccordion(day: day)),
           ],
         );
       },
@@ -196,17 +269,17 @@ class _PastDaysSection extends ConsumerWidget {
   }
 }
 
-class _DayCard extends StatefulWidget {
+class _DayCard extends ConsumerStatefulWidget {
   const _DayCard({required this.day, required this.theme});
 
   final Day day;
   final ThemeData theme;
 
   @override
-  State<_DayCard> createState() => _DayCardState();
+  ConsumerState<_DayCard> createState() => _DayCardState();
 }
 
-class _DayCardState extends State<_DayCard> {
+class _DayCardState extends ConsumerState<_DayCard> {
   bool _exporting = false;
 
   Future<void> _exportPdf() async {
@@ -222,7 +295,8 @@ class _DayCardState extends State<_DayCard> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not create PDF. Please try again.')),
+          const SnackBar(
+              content: Text('Could not create PDF. Please try again.')),
         );
       }
     } finally {
@@ -234,6 +308,8 @@ class _DayCardState extends State<_DayCard> {
   Widget build(BuildContext context) {
     final day = widget.day;
     final theme = widget.theme;
+    final showIllustration =
+        ref.watch(experimentalFeaturesProvider).showDayIllustrations;
 
     return Card(
       child: Padding(
@@ -241,6 +317,10 @@ class _DayCardState extends State<_DayCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (showIllustration) ...[
+              DayIllustration(imageUrl: day.illustration),
+              const SizedBox(height: 16),
+            ],
             Row(
               children: [
                 Expanded(
@@ -284,9 +364,13 @@ class _DayAccordion extends StatelessWidget {
       child: ExpandableNotifier(
         child: ExpandablePanel(
           theme: paediaExpandableTheme(context),
-          header: ListTile(
-            title: Text('Day ${day.dayNumber}: ${day.title}'),
-            dense: true,
+          header: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              minVerticalPadding: 12,
+              title: Text('Day ${day.dayNumber}: ${day.title}'),
+            ),
           ),
           collapsed: const SizedBox.shrink(),
           expanded: Padding(
@@ -330,9 +414,8 @@ class _DaySections extends StatelessWidget {
         ),
       if (day.questions.isNotEmpty)
         (
-          title: day.questionsTitle.isNotEmpty
-              ? day.questionsTitle
-              : 'Questions',
+          title:
+              day.questionsTitle.isNotEmpty ? day.questionsTitle : 'Questions',
           body: day.questions,
           isHtml: true,
         ),
@@ -344,13 +427,22 @@ class _DaySections extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (final section in sections) ...[
-          Text(section.title, style: theme.textTheme.titleSmall),
+          Text(
+            section.title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.15,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
           const SizedBox(height: 8),
           if (section.isHtml)
             HtmlContentView(html: section.body)
           else
-            Text(section.body, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 16),
+            SelectionArea(
+              child: Text(section.body, style: theme.textTheme.bodyMedium),
+            ),
+          const SizedBox(height: 20),
         ],
       ],
     );

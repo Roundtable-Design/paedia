@@ -1,63 +1,180 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    Alternatively, build your application passing the --base-href parameter
-    specifying the new root path of your web app.
-
-    Fore more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
 
-  <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Paedia">
-
-  
 
   <meta name="robots" content="noindex" />
 
-  <!-- Favicon -->
   <link rel="icon" href="White_on_Sage_Green_-_Rounded.png" sizes="any"/>
-  
 
-  <!-- Open Graph & SEO tags -->
   <meta property="og:title" content="Paedia" />
   <meta property="og:description" content="Paedia is a 90-Day Christian Discipleship Journey" />
-  <meta property="og:image" content="/assets/assets/images/Frame_5.png" /> 
+  <meta property="og:image" content="/assets/assets/images/Frame_5.png" />
   <meta name="twitter:title" content="Paedia" />
   <meta name="twitter:description" content="Paedia is a 90-Day Christian Discipleship Journey" />
   <meta name="twitter:image" content="/assets/assets/images/Frame_5.png" />
   <meta name="twitter:card" content="summary_large_image" />
 
-  <title> Paedia </title>
+  <title>Paedia</title>
   <meta name="description" content="Paedia is a 90-Day Christian Discipleship Journey" />
-    
 
-  <!-- Status Bar color in Safari browser (iOS) and PWA -->
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f1f4f8">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#1d2428">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#14181b">
 
   <link rel="manifest" href="manifest.json">
-  
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --paedia-primary: #3d9970;
+      --paedia-surface-light: #ffffff;
+      --paedia-surface-dark: #14181b;
+      --paedia-text-light: #14181b;
+      --paedia-text-dark: #ffffff;
+      --paedia-muted-light: rgba(20, 24, 27, 0.55);
+      --paedia-muted-dark: rgba(255, 255, 255, 0.55);
+      --paedia-border-light: rgba(20, 24, 27, 0.08);
+      --paedia-border-dark: rgba(255, 255, 255, 0.08);
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Prevent Flutter's default blue indeterminate bar. */
+    #loading::before,
+    #loading.indeterminate::before {
+      display: none !important;
+      animation: none !important;
+    }
+
+    #loading.paedia-boot {
+      position: fixed;
+      inset: 0;
+      z-index: 999999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--paedia-surface-light);
+      color: var(--paedia-text-light);
+      transition: opacity 0.28s ease, visibility 0.28s ease;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      #loading.paedia-boot {
+        background: var(--paedia-surface-dark);
+        color: var(--paedia-text-dark);
+      }
+    }
+
+    #loading.paedia-boot.paedia-boot--hide {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .paedia-boot__panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 32px;
+    }
+
+    .paedia-boot__logo {
+      width: 56px;
+      height: 56px;
+      object-fit: contain;
+      animation: paedia-boot-float 2.4s ease-in-out infinite;
+    }
+
+    .paedia-boot__title {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .paedia-boot__track {
+      width: 120px;
+      height: 3px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: var(--paedia-border-light);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .paedia-boot__track {
+        background: var(--paedia-border-dark);
+      }
+    }
+
+    .paedia-boot__bar {
+      width: 40%;
+      height: 100%;
+      border-radius: 999px;
+      background: var(--paedia-primary);
+      animation: paedia-boot-progress 1.2s ease-in-out infinite;
+    }
+
+    .paedia-boot__caption {
+      margin: 0;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--paedia-muted-light);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .paedia-boot__caption {
+        color: var(--paedia-muted-dark);
+      }
+    }
+
+    @keyframes paedia-boot-progress {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(320%); }
+    }
+
+    @keyframes paedia-boot-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+  </style>
 </head>
 <body>
-  
-  
-  
-  
-  
+  <div id="loading" class="paedia-boot" aria-live="polite" aria-busy="true">
+    <div class="paedia-boot__panel">
+      <img
+        class="paedia-boot__logo"
+        src="paedia-leaf.png"
+        width="56"
+        height="56"
+        alt=""
+      />
+      <p class="paedia-boot__title">Paedia</p>
+      <div class="paedia-boot__track" aria-hidden="true">
+        <div class="paedia-boot__bar"></div>
+      </div>
+      <p class="paedia-boot__caption">Loading…</p>
+    </div>
+  </div>
+
   <script>
     {{flutter_bootstrap_js}}
   </script>
