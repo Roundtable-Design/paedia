@@ -82,6 +82,7 @@ Respect `.flutterflowignore` for hand-edited files.
 
 ## Roadmap
 - [Revamp strategy](docs/REVAMP_STRATEGY.md)
+- [Feature prioritisation (RICE)](docs/FEATURE_PRIORITISATION.md)
 
 - Offline prefetch (Drift/SQLite)
 - PDF export for days and manuals
